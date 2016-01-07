@@ -15,40 +15,55 @@
  */
 package nz.ac.auckland.alm.trafo;
 
+import com.android.tools.idea.uibuilder.model.NlComponent;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.XmlElementFactory;
 import com.intellij.psi.xml.*;
+import nz.ac.auckland.alm.IArea;
+import nz.ac.auckland.alm.algebra.Fragment;
+
+import java.util.List;
 
 
 public class PsiLayoutWriter {
-  static public void write(Item item, XmlFile outFile, Project project) {
+  static public void write(IArea area, XmlFile outFile, Project project) {
     XmlElementFactory factory = XmlElementFactory.getInstance(project);
     XmlDocument xmlDocument = outFile.getDocument();
     if (xmlDocument.getRootTag() != null)
       xmlDocument.getRootTag().delete();
-    xmlDocument.add(toTag(item, factory));
+    xmlDocument.add(toTag(area, factory));
   }
 
-  static private XmlTag toTag(Item item, XmlElementFactory factory) {
-    if (item instanceof Group)
-      return toTagGroup((Group)item, factory);
+  static private XmlTag toTag(IArea area, XmlElementFactory factory) {
+    if (area instanceof Fragment)
+      return toTagGroup((Fragment)area, factory);
 
-    return copyDeep(item.getTag(), factory);
+    return copyDeep(getTag(area), factory);
   }
 
-  static private XmlTag toTagGroup(Group group, XmlElementFactory factory) {
+  static private XmlTag getTag(IArea area) {
+    if (area.getCookie() == null)
+      return null;
+    return ((NlComponent)area.getCookie()).getTag();
+  }
+
+  static private XmlTag toTagGroup(Fragment fragment, XmlElementFactory factory) {
     XmlTag groupTag;
-    if (group.getTag() != null)
-      groupTag = copyShallow(group.getTag(), factory);
-    else
+    if (getTag(fragment) != null)
+      groupTag = copyShallow(getTag(fragment), factory);
+    else {
       groupTag = factory.createTagFromText("<LinearLayout/>");
+      groupTag.setAttribute("android:layout_width", "match_parent");
+      groupTag.setAttribute("android:layout_height", "match_parent");
+      groupTag.setAttribute("android:layout_weight", "1");
+    }
 
     String orientationString = "horizontal";
-    if (group.getOrientation() == Group.Orientation.VERTICAL)
+    if (fragment.isVerticalDirection())
       orientationString = "vertical";
     groupTag.setAttribute("android:orientation", orientationString);
 
-    for (Item item : group.getChild())
+    for (IArea item : (List<IArea>)fragment.getItems())
       groupTag.addSubTag(toTag(item, factory), false);
 
     return groupTag;
