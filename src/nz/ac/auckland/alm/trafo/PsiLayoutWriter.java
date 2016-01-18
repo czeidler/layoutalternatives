@@ -31,12 +31,12 @@ public class PsiLayoutWriter {
     XmlDocument xmlDocument = outFile.getDocument();
     if (xmlDocument.getRootTag() != null)
       xmlDocument.getRootTag().delete();
-    xmlDocument.add(toTag(area, factory));
+    xmlDocument.add(toTag(area, factory, true));
   }
 
-  static private XmlTag toTag(IArea area, XmlElementFactory factory) {
+  static private XmlTag toTag(IArea area, XmlElementFactory factory, boolean rootTag) {
     if (area instanceof Fragment)
-      return toTagGroup((Fragment)area, factory);
+      return toTagGroup((Fragment)area, factory, rootTag);
 
     return copyDeep(getTag(area), factory);
   }
@@ -47,15 +47,16 @@ public class PsiLayoutWriter {
     return ((NlComponent)area.getCookie()).getTag();
   }
 
-  static private XmlTag toTagGroup(Fragment fragment, XmlElementFactory factory) {
+  static private XmlTag toTagGroup(Fragment fragment, XmlElementFactory factory, boolean rootTag) {
     XmlTag groupTag;
     if (getTag(fragment) != null)
       groupTag = copyShallow(getTag(fragment), factory);
     else {
       groupTag = factory.createTagFromText("<LinearLayout/>");
-      groupTag.setAttribute("android:layout_width", "match_parent");
-      groupTag.setAttribute("android:layout_height", "match_parent");
-      groupTag.setAttribute("android:layout_weight", "1");
+      groupTag.setAttribute("android:layout_width", "wrap_content");
+      groupTag.setAttribute("android:layout_height", "wrap_content");
+      if (rootTag)
+        groupTag.setAttribute("xmlns:android", "http://schemas.android.com/apk/res/android");
     }
 
     String orientationString = "horizontal";
@@ -64,7 +65,7 @@ public class PsiLayoutWriter {
     groupTag.setAttribute("android:orientation", orientationString);
 
     for (IArea item : (List<IArea>)fragment.getItems())
-      groupTag.addSubTag(toTag(item, factory), false);
+      groupTag.addSubTag(toTag(item, factory, false), false);
 
     return groupTag;
   }

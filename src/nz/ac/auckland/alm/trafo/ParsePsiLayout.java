@@ -19,7 +19,6 @@ import com.android.tools.idea.uibuilder.model.NlComponent;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlTag;
 import nz.ac.auckland.alm.IArea;
-import nz.ac.auckland.alm.TabArea;
 import nz.ac.auckland.alm.algebra.Fragment;
 
 
@@ -31,13 +30,12 @@ public class ParsePsiLayout {
     if (element.getName().equals(LINEAR_LAYOUT_NAME))
       return parseLinearLayout(component);
     else {
-      IArea item = new TabArea();
-      item.setCookie(component);
+      IArea item = NlComponentParser.toArea(component);
       return item;
     }
   }
 
-  static private IArea parseLinearLayout(NlComponent layoutComponent) {
+  static private Fragment parseLinearLayout(NlComponent layoutComponent) {
     XmlTag layout = layoutComponent.getTag();
     XmlAttribute orientationAttribute = layout.getAttribute("android:orientation");
     Fragment fragment;
@@ -53,32 +51,4 @@ public class ParsePsiLayout {
 
     return fragment;
   }
-  /*
-  static public Item parse(NlComponent component) {
-    XmlTag element = component.getTag();
-    if (element.getName().equals(LINEAR_LAYOUT_NAME))
-      return parseLinearLayout(component);
-    else {
-      Item item = new Item();
-      item.setComponent(component);
-      return item;
-    }
-  }
-
-  static private Group parseLinearLayout(NlComponent layoutComponent) {
-    XmlTag layout = layoutComponent.getTag();
-    Group.Orientation orientation = Group.Orientation.HORIZONTAL;
-    XmlAttribute orientationAttribute = layout.getAttribute("android:orientation");
-    if (orientationAttribute != null && orientationAttribute.getValue() != null && orientationAttribute.getValue().equals("vertical"))
-      orientation = Group.Orientation.VERTICAL;
-
-    Group group = new Group(orientation);
-    group.setComponent(layoutComponent);
-    for (int i = 0; i < layoutComponent.getChildCount(); i++) {
-      NlComponent child = layoutComponent.getChild(i);
-      group.add(parse(child));
-    }
-
-    return group;
-  }*/
 }
