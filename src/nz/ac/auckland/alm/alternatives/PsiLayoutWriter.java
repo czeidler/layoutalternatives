@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nz.ac.auckland.alm.trafo;
+package nz.ac.auckland.alm.alternatives;
 
 import com.android.tools.idea.uibuilder.model.NlComponent;
 import com.intellij.openapi.project.Project;
@@ -64,7 +64,7 @@ public class PsiLayoutWriter {
       orientationString = "vertical";
     groupTag.setAttribute("android:orientation", orientationString);
 
-    for (IArea item : (List<IArea>)fragment.getItems())
+    for (IArea item : (Iterable<IArea>)fragment.getItems())
       groupTag.addSubTag(toTag(item, factory, false), false);
 
     return groupTag;

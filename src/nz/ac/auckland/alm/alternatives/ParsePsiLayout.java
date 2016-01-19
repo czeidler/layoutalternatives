@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 The Android Open Source Project
+ * Copyright (C) 2016 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nz.ac.auckland.alm.trafo;
+package nz.ac.auckland.alm.alternatives;
 
 import com.android.tools.idea.uibuilder.model.NlComponent;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlTag;
 import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.alternatives.NlComponentParser;
 
 
 public class ParsePsiLayout {

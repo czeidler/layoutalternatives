@@ -13,8 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import java.lang.ref.WeakReference;
+package nz.ac.auckland.alm.misc;import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 

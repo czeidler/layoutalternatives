@@ -30,7 +30,7 @@
 
   <actions>
     <!-- Add your actions here -->
-    <action id="test" class="ActionTest" text="ActionTest" description="test an action">
+    <action id="AlternativeAction" class="nz.ac.auckland.alm.alternatives.AlternativeAction" text="Alternatives" description="test an action">
       <add-to-group group-id="AndroidToolsGroup" anchor="after" relative-to-action="Android.ShowThemeEditor"/>
     </action>
   </actions>
