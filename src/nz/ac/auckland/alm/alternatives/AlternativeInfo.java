@@ -93,9 +93,13 @@ public class AlternativeInfo {
     private void getSizes(Fragment fragment) {
         setTabs(fragment);
 
+        final float hSpacing = 10;
+        final float vSpacing = 20;
         List<IArea> areas = new ArrayList<IArea>();
         getAtoms(fragment, areas);
         LayoutSpec layoutSpec = new LayoutSpec();
+        layoutSpec.setHorizontalSpacing(hSpacing);
+        layoutSpec.setVerticalSpacing(vSpacing);
         fragment.setLeft(layoutSpec.getLeft());
         fragment.setTop(layoutSpec.getTop());
         fragment.setRight(layoutSpec.getRight());
