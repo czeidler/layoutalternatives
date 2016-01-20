@@ -16,15 +16,47 @@
 package nz.ac.auckland.alm.alternatives;
 
 import com.android.tools.idea.uibuilder.model.NlComponent;
+import com.intellij.psi.xml.XmlAttribute;
+import com.intellij.psi.xml.XmlTag;
 import nz.ac.auckland.alm.Area;
+import nz.ac.auckland.alm.IArea;
+import nz.ac.auckland.alm.algebra.Fragment;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 
 public class NlComponentParser {
+  static final private String LINEAR_LAYOUT_NAME = "LinearLayout";
 
-  static public Area toArea(NlComponent component) {
+  static public IArea parse(NlComponent component) {
+    XmlTag element = component.getTag();
+    if (element.getName().equals(LINEAR_LAYOUT_NAME))
+      return parseLinearLayout(component);
+    else {
+      IArea item = toArea(component);
+      return item;
+    }
+  }
+
+  static private Fragment parseLinearLayout(NlComponent layoutComponent) {
+    XmlTag layout = layoutComponent.getTag();
+    XmlAttribute orientationAttribute = layout.getAttribute("android:orientation");
+    Fragment fragment;
+    if (orientationAttribute != null && orientationAttribute.getValue() != null && orientationAttribute.getValue().equals("vertical"))
+      fragment = Fragment.createEmptyFragment(Fragment.verticalDirection);
+    else
+      fragment = Fragment.createEmptyFragment(Fragment.horizontalDirection);
+    fragment.setCookie(layoutComponent);
+    for (int i = 0; i < layoutComponent.getChildCount(); i++) {
+      NlComponent child = layoutComponent.getChild(i);
+      fragment.add(parse(child), false);
+    }
+
+    return fragment;
+  }
+
+  static private Area toArea(NlComponent component) {
     Area area = new Area();
     area.setCookie(component);
     area.setMinSize(getMinSize(component));
@@ -75,8 +107,7 @@ public class NlComponentParser {
       Method getMeasuredHeight = view.getClass().getMethod("getMeasuredHeight");
       measure.invoke(view, makeMeasureSpec(WRAP_CONTENT, AT_MOST), makeMeasureSpec(WRAP_CONTENT, AT_MOST));
       return new Area.Size((Integer)getMeasuredWidth.invoke(view), (Integer)getMeasuredHeight.invoke(view));
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
     }
   }
@@ -90,8 +121,7 @@ public class NlComponentParser {
       Field height = layoutParams.getClass().getField("height");
       layoutParamsWidth = (Integer)width.get(layoutParams);
       layoutParamsHeight = (Integer)height.get(layoutParams);
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
     }
 

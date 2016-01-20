@@ -22,17 +22,13 @@ import com.android.tools.idea.uibuilder.model.NlModel;
 import com.android.tools.idea.uibuilder.surface.DesignSurface;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
-import com.intellij.openapi.application.Result;
-import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
-import com.intellij.psi.xml.XmlDocument;
 import com.intellij.psi.xml.XmlFile;
 import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.algebra.Fragment;
@@ -41,7 +37,6 @@ import nz.ac.auckland.alm.alternatives.gui.AlternativeController;
 import nz.ac.auckland.alm.alternatives.gui.AlternativeInfoPanel;
 import org.jetbrains.android.dom.layout.LayoutDomFileDescription;
 import org.jetbrains.android.facet.AndroidFacet;
-import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
@@ -106,62 +101,6 @@ public class AlternativeAction extends AnAction {
         return -1;
     }
 
-    static class LayoutRenderer {
-        final Project project;
-        final AndroidFacet facet;
-        final XmlFile xmlFile;
-
-        LayoutRenderer(Project project, XmlFile mainFile) {
-            this.project = project;
-            this.xmlFile = mainFile;
-            this.facet = AndroidFacet.getInstance(mainFile);
-        }
-
-        public DesignSurface getDesignSurface(final Fragment fragment) {
-            PsiDirectory resourceDir = xmlFile.getParent().getParentDirectory();
-            PsiDirectory landDir = resourceDir.findSubdirectory("layout-land");
-            if (landDir == null)
-                landDir = resourceDir.createSubdirectory("layout-land");
-            String fileName = xmlFile.getName();
-            PsiFile copyLand = landDir.findFile(fileName);
-            if (copyLand == null)
-                copyLand = landDir.createFile(fileName);
-
-            facet.getConfigurationManager().getConfiguration(copyLand.getVirtualFile()).setTheme(
-              facet.getConfigurationManager().getConfiguration(xmlFile.getVirtualFile()).getTheme()
-            );
-
-            final XmlFile copyXmlFile = (XmlFile)copyLand;
-            WriteCommandAction<Void> action = new WriteCommandAction<Void>(project, copyLand) {
-                @Override
-                protected void run(@NotNull Result<Void> result) throws Throwable {
-                    // fix prolog
-                    XmlDocument copyDocument = copyXmlFile.getDocument();
-                    if (copyDocument.getProlog() != null)
-                        copyDocument.getProlog().delete();
-                    copyDocument.add(xmlFile.getDocument().getProlog().copy());
-
-                    PsiLayoutWriter.write(fragment, copyXmlFile, project);
-                }
-            };
-            action.execute();
-
-            return createView(copyXmlFile, false);
-        }
-
-        public DesignSurface createView(XmlFile xmlFile, boolean renderImmediately) {
-            DesignSurface surface = new DesignSurface(project);
-            NlEditor nlEditor = new NlEditor(facet, xmlFile.getVirtualFile(), project);
-            NlModel model = NlModel.create(surface, nlEditor, facet, xmlFile);
-            surface.setModel(model);
-            if (renderImmediately)
-                model.renderImmediately();
-            else
-                model.requestRenderAsap();
-            return surface;
-        }
-    }
-
     @Override
     public void actionPerformed(AnActionEvent e) {
         final Project project = e.getProject();
@@ -196,7 +135,7 @@ public class AlternativeAction extends AnAction {
             return;
         NlComponent root = model.getComponents().get(0);
 
-        final IArea item = ParsePsiLayout.parse(root);
+        final IArea item = NlComponentParser.parse(root);
         if (!(item instanceof Fragment))
             return;
         Fragment mainFragment = (Fragment)item;

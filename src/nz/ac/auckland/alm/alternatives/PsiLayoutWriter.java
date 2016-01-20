@@ -58,6 +58,10 @@ public class PsiLayoutWriter {
       if (rootTag)
         groupTag.setAttribute("xmlns:android", "http://schemas.android.com/apk/res/android");
     }
+    if (rootTag) {
+      groupTag.setAttribute("android:layout_width", "fill_parent");
+      groupTag.setAttribute("android:layout_height", "fill_parent");
+    }
 
     String orientationString = "horizontal";
     if (fragment.isVerticalDirection())
