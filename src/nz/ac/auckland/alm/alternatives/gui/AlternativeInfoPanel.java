@@ -57,6 +57,17 @@ public class AlternativeInfoPanel {
     myColumns.add(new IColumn() {
       @Override
       public String columnName() {
+        return "N Trafos";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return info.getResult().numberOfTrafos;
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
         return "Quality";
       }
 

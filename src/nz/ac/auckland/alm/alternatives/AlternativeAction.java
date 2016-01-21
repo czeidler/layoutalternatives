@@ -92,7 +92,7 @@ public class AlternativeAction extends AnAction {
         }
     };
 
-    private int getEquivalent(List<ITransformation.Result> results, Fragment fragment) {
+    private int getEquivalent(List<FragmentAlternatives.Result> results, Fragment fragment) {
         for (int i = 0; i < results.size(); i++) {
             Fragment result = results.get(i).fragment;
             if (result.isEquivalent(fragment))
@@ -145,18 +145,18 @@ public class AlternativeAction extends AnAction {
         FragmentAlternatives fragmentAlternatives = new FragmentAlternatives();
         fragmentAlternatives.addTransformation(new SwapTrafo());
         fragmentAlternatives.addTransformation(new ColumnOneToTwoTrafo());
-        List<ITransformation.Result> alternatives = new ArrayList<ITransformation.Result>();
+        List<FragmentAlternatives.Result> alternatives = new ArrayList<FragmentAlternatives.Result>();
         for (Fragment group : groups) {
-            List<ITransformation.Result> results = fragmentAlternatives.calculateAlternatives(group);
-            for (ITransformation.Result result : results) {
+            List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(group);
+            for (FragmentAlternatives.Result result : results) {
                 if (getEquivalent(alternatives, result.fragment) < 0)
                     alternatives.add(result);
             }
         }
 
         List<AlternativeInfo> alternativeInfos = new ArrayList<AlternativeInfo>();
-        for (ITransformation.Result alternative : alternatives)
-            alternativeInfos.add(new AlternativeInfo(alternative.fragment, alternative.quality));
+        for (FragmentAlternatives.Result alternative : alternatives)
+            alternativeInfos.add(new AlternativeInfo(alternative));
 
         AlternativeController alternativeController = new  AlternativeController(alternativeInfos);
         alternativeController.sortByRatio();

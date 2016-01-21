@@ -40,6 +40,11 @@ public class AlternativeController extends WeakListenable<AlternativeController.
     Collections.sort(alternatives, new Comparator<AlternativeInfo>() {
       @Override
       public int compare(AlternativeInfo a0, AlternativeInfo a1) {
+        if (a0.getResult().numberOfTrafos < a1.getResult().numberOfTrafos)
+          return -1;
+        if (a0.getResult().numberOfTrafos > a1.getResult().numberOfTrafos)
+          return 1;
+        // same number of trafos sort by ratio
         double targetRatio = 16d/9;
         if (Math.abs(a0.getPrefRatio() - targetRatio) < Math.abs(a1.getPrefRatio() - targetRatio))
           return -1;

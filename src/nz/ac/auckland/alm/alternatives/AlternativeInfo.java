@@ -19,30 +19,33 @@ import nz.ac.auckland.alm.ILayoutSpecArea;
 import nz.ac.auckland.alm.LayoutSpec;
 import nz.ac.auckland.alm.algebra.Fragment;
 import nz.ac.auckland.alm.algebra.IDirection;
+import nz.ac.auckland.alm.algebra.trafo.FragmentAlternatives;
 import nz.ac.auckland.linsolve.Variable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AlternativeInfo {
-    private Fragment myFragment;
-    private float quality;
+    private FragmentAlternatives.Result result;
     private Area.Size minSize;
     private Area.Size prefSize;
 
-    public AlternativeInfo(Fragment fragment, float quality) {
-        this.myFragment = fragment;
-        this.quality = quality;
+    public AlternativeInfo(FragmentAlternatives.Result result) {
+        this.result = result;
 
-        getSizes(fragment);
+        getSizes(result.fragment);
+    }
+
+    public FragmentAlternatives.Result getResult() {
+        return result;
     }
 
     public Fragment getFragment() {
-        return myFragment;
+        return result.fragment;
     }
 
     public float getQuality() {
-        return quality;
+        return result.quality;
     }
 
     public Area.Size getMinSize() {
@@ -55,11 +58,6 @@ public class AlternativeInfo {
 
     public double getPrefRatio() {
         return prefSize.getWidth() / prefSize.getHeight();
-    }
-
-    @Override
-    public String toString() {
-        return myFragment.toString() + ", pref(" + prefSize.getWidth() + "," + prefSize.getHeight() + "), ratio: " + getPrefRatio();
     }
 
     private void setTabs(Fragment fragment) {
