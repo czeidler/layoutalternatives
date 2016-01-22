@@ -85,10 +85,12 @@ public class NlComponentParser {
       Method minHeight = view.getClass().getMethod("getMinimumHeight");
       Object width = minWidth.invoke(view);
       Object height = minHeight.invoke(view);
+      if ((Integer)width == 0 || (Integer)height == 0)
+        return getPreferredSizeRaw(component);
       return new Area.Size((Integer)width, (Integer)height);
     }
     catch (Exception e) {
-      return getPreferredSize(component);
+      return getPreferredSizeRaw(component);
     }
   }
 
@@ -99,17 +101,60 @@ public class NlComponentParser {
   static public final int EXACTLY = 1073741824;
   static public final int UNSPECIFIED = 0;
 
-  static public Area.Size getPreferredSize(NlComponent component) {
+  static private Area.Size getPreferredSizeRaw(NlComponent component) {
+    return measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
+  }
+
+  static private Area.Size measureSizeAtMost(NlComponent component, int width, int height) {
     Object view = component.viewInfo.getViewObject();
     try {
       Method measure = view.getClass().getMethod("measure", int.class, int.class);
       Method getMeasuredWidth = view.getClass().getMethod("getMeasuredWidth");
       Method getMeasuredHeight = view.getClass().getMethod("getMeasuredHeight");
-      measure.invoke(view, makeMeasureSpec(WRAP_CONTENT, AT_MOST), makeMeasureSpec(WRAP_CONTENT, AT_MOST));
+      measure.invoke(view, makeMeasureSpec(width, AT_MOST), makeMeasureSpec(height, AT_MOST));
       return new Area.Size((Integer)getMeasuredWidth.invoke(view), (Integer)getMeasuredHeight.invoke(view));
     } catch (Exception e) {
       return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
     }
+  }
+
+  static public Area.Size getPreferredSize(NlComponent component) {
+    Object layoutParams = component.viewInfo.getLayoutParamsObject();
+    int layoutParamsWidth;
+    int layoutParamsHeight;
+    try {
+      Field width = layoutParams.getClass().getField("width");
+      Field height = layoutParams.getClass().getField("height");
+      layoutParamsWidth = (Integer)width.get(layoutParams);
+      layoutParamsHeight = (Integer)height.get(layoutParams);
+    } catch (Exception e) {
+      return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
+    }
+
+    NlComponent rootComponent = component.getRoot();
+    final int rootWidth = rootComponent.w;
+    final int rootHeight = rootComponent.h;
+
+    Area.Size prefSize;
+    if (layoutParamsWidth == WRAP_CONTENT
+        || layoutParamsHeight == WRAP_CONTENT)
+      prefSize = getPreferredSizeRaw(component);
+    else
+      prefSize = new Area.Size(0, 0);
+
+    // max width
+    if (layoutParamsWidth == MATCH_PARENT)
+      prefSize.setWidth(rootWidth);
+    else if (layoutParamsWidth != WRAP_CONTENT)
+      prefSize.setWidth(layoutParamsWidth);
+
+    // max height
+    if (layoutParamsHeight == MATCH_PARENT)
+      prefSize.setHeight(rootHeight);
+    else if (layoutParamsHeight != WRAP_CONTENT)
+      prefSize.setHeight(layoutParamsHeight);
+
+    return prefSize;
   }
 
   static public Area.Size getMaxSize(NlComponent component) {
@@ -125,24 +170,26 @@ public class NlComponentParser {
       return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
     }
 
-    final int LARGE_SIZE = 8000;
+    NlComponent rootComponent = component.getRoot();
+    final int rootWidth = rootComponent.w;
+    final int rootHeight = rootComponent.h;
 
     Area.Size maxSize;
     if (layoutParamsWidth == WRAP_CONTENT
         || layoutParamsHeight == WRAP_CONTENT)
-      maxSize = getPreferredSize(component);
+      maxSize = measureSizeAtMost(component, rootWidth, rootHeight);
     else
       maxSize = new Area.Size(0, 0);
 
     // max width
     if (layoutParamsWidth == MATCH_PARENT)
-      maxSize.setWidth(LARGE_SIZE);
+      maxSize.setWidth(rootWidth);
     else if (layoutParamsWidth != WRAP_CONTENT)
       maxSize.setWidth(layoutParamsWidth);
 
     // max height
     if (layoutParamsHeight == MATCH_PARENT)
-      maxSize.setHeight(LARGE_SIZE);
+      maxSize.setHeight(rootHeight);
     else if (layoutParamsHeight != WRAP_CONTENT)
       maxSize.setHeight(layoutParamsHeight);
 
