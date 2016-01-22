@@ -101,6 +101,17 @@ public class AlternativeInfoPanel {
     myColumns.add(new IColumn() {
       @Override
       public String columnName() {
+        return "Pref Size Diff";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return info.getPrefSizeDiff();
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
         return "Ref Size Ratio";
       }
 

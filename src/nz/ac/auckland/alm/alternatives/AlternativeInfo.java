@@ -13,7 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nz.ac.auckland.alm.alternatives;import nz.ac.auckland.alm.Area;
+package nz.ac.auckland.alm.alternatives;
+
+import com.android.tools.idea.uibuilder.model.NlComponent;
+import nz.ac.auckland.alm.Area;
 import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.ILayoutSpecArea;
 import nz.ac.auckland.alm.LayoutSpec;
@@ -29,6 +32,7 @@ public class AlternativeInfo {
     private FragmentAlternatives.Result result;
     private Area.Size minSize;
     private Area.Size prefSize;
+    private double prefSizeDiff;
 
     public AlternativeInfo(FragmentAlternatives.Result result) {
         this.result = result;
@@ -54,6 +58,10 @@ public class AlternativeInfo {
 
     public Area.Size getPrefSize() {
         return prefSize;
+    }
+
+    public double getPrefSizeDiff() {
+        return prefSizeDiff;
     }
 
     public double getPrefRatio() {
@@ -110,8 +118,33 @@ public class AlternativeInfo {
 
         minSize = layoutSpec.getMinSize();
         prefSize = layoutSpec.getPreferredSize();
-        layoutSpec.release();
 
+        if (areas.size() > 0) {
+            if (areas.get(0).getCookie() != null) {
+                NlComponent component = (NlComponent)areas.get(0).getCookie();
+                NlComponent root = component.getRoot();
+                // portrait h <-> w
+                layoutSpec.setRight(root.h);
+                layoutSpec.setBottom(root.w);
+                layoutSpec.solve();
+            }
+        }
+
+        // calculate prefSizeDiff
+        prefSizeDiff = 0;
+        for (IArea area : areas) {
+            if (!(area instanceof Area))
+                continue;
+            double width = area.getRight().getValue() - area.getLeft().getValue();
+            double height = area.getBottom().getValue() - area.getTop().getValue();
+            Area.Size areaPrefSize = ((Area)area).getPreferredSize();
+            prefSizeDiff += Math.pow(width - areaPrefSize.getWidth(), 2) + Math.pow(height - areaPrefSize.getHeight(), 2);
+        }
+        prefSizeDiff = Math.sqrt(prefSizeDiff);
+
+        // clean up
+        layoutSpec.release();
+        // todo remove?
         // reset variables
         for (IArea area : areas) {
             area.setLeft(null);
@@ -121,3 +154,4 @@ public class AlternativeInfo {
         }
     }
 }
+
