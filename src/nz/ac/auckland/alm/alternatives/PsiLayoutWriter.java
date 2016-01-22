@@ -108,6 +108,21 @@ public class PsiLayoutWriter {
     return false;
   }
 
+  static private boolean hasNoneLinearLayoutWithMatchParent(XmlTag tag, String attribute) {
+    for (XmlTag child : tag.getSubTags()) {
+      if (isLinearLayout(child)) {
+        boolean match = hasNoneLinearLayoutWithMatchParent(child, attribute);
+        if (match)
+          return true;
+        continue;
+      }
+      XmlAttribute xmlAttribute = child.getAttribute(attribute);
+      if (xmlAttribute != null && (xmlAttribute.getValue().equals(MATCH_PARENT) || xmlAttribute.getValue().equals(FILL_PARENT)))
+        return true;
+    }
+    return false;
+  }
+
   static private List<XmlTag> collectChildWithMatchParent(XmlTag tag, String attribute) {
     List<XmlTag> result = new ArrayList<XmlTag>();
     for (XmlTag child : tag.getSubTags()) {
@@ -116,6 +131,13 @@ public class PsiLayoutWriter {
         result.add(child);
     }
     return result;
+  }
+
+  static private void setChildLinearLayoutAttribute(XmlTag tag, String attribute, String value) {
+    for (XmlTag child : tag.getSubTags()) {
+      if (isLinearLayout(child))
+        child.setAttribute(attribute, value);
+    }
   }
 
   static private List<XmlTag> collectChildWithAttribute(XmlTag tag, String attribute, String value) {
@@ -151,15 +173,16 @@ public class PsiLayoutWriter {
     for (XmlTag leaf : leafs) {
       XmlTag current = leaf;
       while (true) {
-        // inherit match parent attribute from child
-        if (hasChildWithMatchParent(current, "android:layout_height"))
+        // inherit match parent attribute from child (if there is a none linear layout child with match_parent)
+        if (hasNoneLinearLayoutWithMatchParent(current, "android:layout_height"))
           current.setAttribute("android:layout_height", MATCH_PARENT);
         else
           current.setAttribute("android:layout_height", WRAP_CONTENT);
-        if (hasChildWithMatchParent(current, "android:layout_width"))
+        if (hasNoneLinearLayoutWithMatchParent(current, "android:layout_width"))
           current.setAttribute("android:layout_width", MATCH_PARENT);
         else
           current.setAttribute("android:layout_width", WRAP_CONTENT);
+
 
         // for the leaf nodes set match parent in direction of the layout
         if (current == leaf) {
@@ -169,10 +192,17 @@ public class PsiLayoutWriter {
 
         // set weights for "match parent" items if there are more than one of them in a layout and
         if (isHorizontal(current)) {
+          // match all siblings in orthogonal direction, this ensures all layout have sufficient extent
+          if (hasChildWithMatchParent(current, "android:layout_height"))
+            setChildLinearLayoutAttribute(current, "android:layout_height", MATCH_PARENT);
+
           List<XmlTag> competingChild = collectChildWithMatchParent(current, "android:layout_width");
           for (XmlTag child : competingChild)
             child.setAttribute("android:layout_weight", "1");
         } else {
+          if (hasChildWithMatchParent(current, "android:layout_width"))
+            setChildLinearLayoutAttribute(current, "android:layout_width", MATCH_PARENT);
+
           List<XmlTag> competingChild = collectChildWithMatchParent(current, "android:layout_height");
           for (XmlTag child : competingChild)
             child.setAttribute("android:layout_weight", "1");
