@@ -41,7 +41,24 @@ public class LayoutRenderer {
         this.facet = AndroidFacet.getInstance(mainFile);
     }
 
+    public Project getProject() {
+        return project;
+    }
+
+    public AndroidFacet getFacet() {
+        return facet;
+    }
+
     public DesignSurface getDesignSurface(final Fragment fragment) {
+        return getDesignSurface(fragment, false);
+    }
+
+    public DesignSurface getDesignSurface(final Fragment fragment, boolean renderImmediately) {
+        XmlFile copyXmlFile = createLandFile(fragment);
+        return createView(copyXmlFile, renderImmediately);
+    }
+
+    public XmlFile createLandFile(final Fragment fragment) {
         PsiDirectory resourceDir = xmlFile.getParent().getParentDirectory();
         PsiDirectory landDir = resourceDir.findSubdirectory("layout-land");
         if (landDir == null)
@@ -65,12 +82,13 @@ public class LayoutRenderer {
                     copyDocument.getProlog().delete();
                 copyDocument.add(xmlFile.getDocument().getProlog().copy());
 
+                //ALMLayoutWriter.write(fragment, copyXmlFile, project);
                 PsiLayoutWriter.write(fragment, copyXmlFile, project);
             }
         };
         action.execute();
 
-        return createView(copyXmlFile, false);
+        return copyXmlFile;
     }
 
     public DesignSurface createView(XmlFile xmlFile, boolean renderImmediately) {

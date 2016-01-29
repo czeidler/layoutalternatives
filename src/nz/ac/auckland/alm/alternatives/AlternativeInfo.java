@@ -15,15 +15,18 @@
  */
 package nz.ac.auckland.alm.alternatives;
 
+import com.android.tools.idea.editors.hprof.jdi.DoubleValueImpl;
+import com.android.tools.idea.uibuilder.editor.NlEditor;
 import com.android.tools.idea.uibuilder.model.NlComponent;
+import com.android.tools.idea.uibuilder.model.NlModel;
+import com.android.tools.idea.uibuilder.surface.DesignSurface;
+import com.intellij.psi.xml.XmlFile;
 import nz.ac.auckland.alm.Area;
 import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.ILayoutSpecArea;
 import nz.ac.auckland.alm.LayoutSpec;
 import nz.ac.auckland.alm.algebra.Fragment;
-import nz.ac.auckland.alm.algebra.IDirection;
 import nz.ac.auckland.alm.algebra.trafo.FragmentAlternatives;
-import nz.ac.auckland.linsolve.Variable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +43,12 @@ public class AlternativeInfo {
         getSizes(result.fragment);
     }
 
+    public AlternativeInfo(FragmentAlternatives.Result result, LayoutRenderer renderer) {
+        this.result = result;
+
+        getSizes2(result.fragment, renderer);
+    }
+
     public FragmentAlternatives.Result getResult() {
         return result;
     }
@@ -49,7 +58,7 @@ public class AlternativeInfo {
     }
 
     public float getQuality() {
-        return result.quality;
+        return result.trafoHistory.getTotalQuality();
     }
 
     public Area.Size getMinSize() {
@@ -68,25 +77,6 @@ public class AlternativeInfo {
         return prefSize.getWidth() / prefSize.getHeight();
     }
 
-    private void setTabs(Fragment fragment) {
-        IDirection direction = fragment.getDirection();
-        if (fragment.size() == 1 && fragment.getItemAt(0) instanceof Fragment) {
-            setTabs((Fragment)fragment.getItemAt(0));
-            return;
-        }
-        for (int i = 0; i < fragment.size() - 1; i++) {
-            IArea area1 = fragment.getItemAt(i);
-            IArea area2 = fragment.getItemAt(i + 1);
-            if (area1 instanceof Fragment)
-                setTabs((Fragment)area1);
-            if (area2 instanceof Fragment)
-                setTabs((Fragment)area2);
-            Variable tab = direction.createTab();
-            direction.setTab(area1, tab);
-            direction.setOppositeTab(area2, tab);
-        }
-    }
-
     private void getAtoms(Fragment fragment, List<IArea> areas) {
         for (IArea area : (Iterable<IArea>)fragment.getItems()) {
             if (area instanceof Fragment)
@@ -97,7 +87,7 @@ public class AlternativeInfo {
     }
 
     private void getSizes(Fragment fragment) {
-        setTabs(fragment);
+        fragment.applySpecsToChild();
 
         final float hSpacing = 10;
         final float vSpacing = 20;
@@ -124,6 +114,11 @@ public class AlternativeInfo {
                 NlComponent component = (NlComponent)areas.get(0).getCookie();
                 NlComponent root = component.getRoot();
                 // portrait h <-> w
+                if (minSize.getWidth() >= root.h || minSize.getHeight() >= root.w) {
+                    prefSizeDiff = Double.MAX_VALUE;
+                    layoutSpec.release();
+                    return;
+                }
                 layoutSpec.setRight(root.h);
                 layoutSpec.setBottom(root.w);
                 layoutSpec.solve();
@@ -132,14 +127,17 @@ public class AlternativeInfo {
 
         // calculate prefSizeDiff
         prefSizeDiff = 0;
+        double emptySpace = layoutSpec.getRight().getValue() * layoutSpec.getBottom().getValue();
         for (IArea area : areas) {
             if (!(area instanceof Area))
                 continue;
             double width = area.getRight().getValue() - area.getLeft().getValue();
             double height = area.getBottom().getValue() - area.getTop().getValue();
             Area.Size areaPrefSize = ((Area)area).getPreferredSize();
-            prefSizeDiff += Math.pow(width - areaPrefSize.getWidth(), 2) + Math.pow(height - areaPrefSize.getHeight(), 2);
+            prefSizeDiff += Math.pow(width * height - areaPrefSize.getWidth() * areaPrefSize.getHeight(), 2);
+            emptySpace -= width * height;
         }
+        prefSizeDiff += Math.pow(emptySpace, 2);
         prefSizeDiff = Math.sqrt(prefSizeDiff);
 
         // clean up
@@ -152,6 +150,38 @@ public class AlternativeInfo {
             area.setRight(null);
             area.setBottom(null);
         }
+    }
+
+    private double calculatePrefDiff(NlComponent component) {
+        double result = 0;
+        double emptySpace = component.w * component.h;
+        for (NlComponent child : component.getChildren()) {
+            if (child.getTag().getName().equals("LinearLayout")) {
+                result += calculatePrefDiff(child);
+                continue;
+            }
+            Area.Size prefSize = NlComponentParser.getPreferredSize(child);
+            double diff = Math.pow(child.w * child.h - prefSize.getWidth() * prefSize.getHeight(), 2);
+            result += diff;
+            emptySpace -= child.w * child.h;
+        }
+        return result + Math.pow(emptySpace, 2);
+    }
+
+    private void getSizes2(Fragment fragment, LayoutRenderer renderer) {
+        XmlFile file = renderer.createLandFile(fragment);
+
+        DesignSurface surface = new DesignSurface(renderer.getProject());
+        NlEditor nlEditor = new NlEditor(renderer.getFacet(), file.getVirtualFile(), renderer.getProject());
+        NlModel model = NlModel.create(surface, nlEditor, renderer.getFacet(), file);
+        surface.setModel(model);
+        model.renderImmediately();
+
+        minSize = new Area.Size();
+        prefSize = new Area.Size();
+
+        // calculate prefSizeDiff
+        prefSizeDiff = Math.sqrt(calculatePrefDiff(model.getComponents().get(0)));
     }
 }
 

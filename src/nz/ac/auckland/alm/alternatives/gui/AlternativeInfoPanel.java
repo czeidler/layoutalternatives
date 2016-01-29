@@ -62,7 +62,18 @@ public class AlternativeInfoPanel {
 
       @Override
       public Object getRow(AlternativeInfo info) {
-        return info.getResult().numberOfTrafos;
+        return info.getResult().trafoHistory.getNTrafos();
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Max nested level";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return info.getResult().trafoHistory.getHighestNestedLevel();
       }
     });
     myColumns.add(new IColumn() {

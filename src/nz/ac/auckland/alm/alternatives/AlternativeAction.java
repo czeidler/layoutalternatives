@@ -138,21 +138,18 @@ public class AlternativeAction extends AnAction {
         final IArea item = NlComponentParser.parse(root);
         if (!(item instanceof Fragment))
             return;
-        Fragment mainFragment = (Fragment)item;
+        Fragment mainFragment = ((Fragment)item).cloneResolve(true);
 
-        List<Fragment> groups = GroupDetector.detect(mainFragment, comparator);
-        groups.add(mainFragment);
         FragmentAlternatives fragmentAlternatives = new FragmentAlternatives();
         fragmentAlternatives.addTransformation(new SwapTrafo());
         fragmentAlternatives.addTransformation(new ColumnOneToTwoTrafo());
         List<FragmentAlternatives.Result> alternatives = new ArrayList<FragmentAlternatives.Result>();
-        for (Fragment group : groups) {
-            List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(group);
-            for (FragmentAlternatives.Result result : results) {
-                if (getEquivalent(alternatives, result.fragment) < 0)
-                    alternatives.add(result);
-            }
+        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, comparator);
+        for (FragmentAlternatives.Result result : results) {
+            if (getEquivalent(alternatives, result.fragment) < 0)
+                alternatives.add(result);
         }
+
 
         List<AlternativeInfo> alternativeInfos = new ArrayList<AlternativeInfo>();
         for (FragmentAlternatives.Result alternative : alternatives)
@@ -168,17 +165,20 @@ public class AlternativeAction extends AnAction {
         JDialog dialog = new JDialog();
         dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         dialog.setTitle("Layout Alternatives");
-        dialog.setLayout(new BoxLayout(dialog.getContentPane(), BoxLayout.X_AXIS));
 
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
-        infoPanel.add(AlternativeInfoPanel.create(main, alternativeController));
-        infoPanel.add(layoutRenderer.createView(rootXmlFile, false));
+
+        JSplitPane infoPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
+                                              AlternativeInfoPanel.create(main, alternativeController),
+                                              layoutRenderer.createView(rootXmlFile, false));
+        infoPanel.setDividerLocation(400);
 
         JPanel alternativeView = getAlternativeView(alternativeController, layoutRenderer);
 
-        dialog.add(infoPanel);
-        dialog.add(alternativeView);
+        JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+                                             infoPanel, alternativeView);
+        mainPane.setDividerLocation(400);
+
+        dialog.add(mainPane);
 
         dialog.pack();
         dialog.setLocationRelativeTo(null);
