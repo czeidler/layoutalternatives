@@ -18,6 +18,8 @@ package nz.ac.auckland.alm.alternatives.gui;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.algebra.trafo.IAlternativeClassifier;
+import nz.ac.auckland.alm.alternatives.AlternativeAction;
 import nz.ac.auckland.alm.alternatives.AlternativeInfo;
 
 import javax.swing.*;
@@ -35,7 +37,8 @@ public class AlternativeInfoPanel {
     Object getRow(AlternativeInfo info);
   }
 
-  static public JPanel create(Fragment main, final AlternativeController alternativeController) {
+  static public JPanel create(Fragment main, final AlternativeController alternativeController,
+                              final AlternativeAction.Classifier classifier) {
     final List<AlternativeInfo> alternativeInfos = alternativeController.getAlternatives();
 
     JPanel panel = new JPanel();
@@ -57,34 +60,68 @@ public class AlternativeInfoPanel {
     myColumns.add(new IColumn() {
       @Override
       public String columnName() {
+        return "Objective Value";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.objectiveValue((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Obj Pref Size";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.getPrefSizeDiffTerm((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Obj Ratio";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.getRatioTerm((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Obj NTrafo";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.getNTrafoTerm((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Obj Symmetry";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.getSymmetryTerm((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
+    /*
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
         return "N Trafos";
       }
 
       @Override
       public Object getRow(AlternativeInfo info) {
         return info.getResult().trafoHistory.getNTrafos();
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Max nested level";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return info.getResult().trafoHistory.getHighestNestedLevel();
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Quality";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return info.getQuality();
       }
     });
     myColumns.add(new IColumn() {
@@ -108,29 +145,7 @@ public class AlternativeInfoPanel {
       public Object getRow(AlternativeInfo info) {
         return info.getPrefSize().getWidth() + ", " + info.getPrefSize().getHeight();
       }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Pref Size Diff";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return info.getPrefSizeDiff();
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Ref Size Ratio";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return info.getPrefRatio();
-      }
-    });
+    });*/
 
     AbstractTableModel tableModel = new AbstractTableModel() {
       @Override

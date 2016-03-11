@@ -21,6 +21,7 @@ import com.intellij.psi.xml.XmlTag;
 import nz.ac.auckland.alm.Area;
 import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.android.AbstractViewInfoParser;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -56,143 +57,100 @@ public class NlComponentParser {
     return fragment;
   }
 
+  static class ViewInfoParser extends AbstractViewInfoParser<NlComponent> {
+    static public final int AT_MOST = -2147483648;
+    static public final int EXACTLY = 1073741824;
+    static public final int UNSPECIFIED = 0;
+
+    /**
+     * Taken from the Android source code.
+     *
+     * @param size
+     * @param mode
+     * @return
+     */
+    public static int makeMeasureSpec(int size, int mode) {
+      final int MODE_SHIFT = 30;
+      final int MODE_MASK  = 0x3 << MODE_SHIFT;
+      return (size & ~MODE_MASK) | (mode & MODE_MASK);
+    }
+
+    static private Area.Size measureSizeAtMost(NlComponent component, int width, int height) {
+      Object view = component.viewInfo.getViewObject();
+      try {
+        Method measure = view.getClass().getMethod("measure", int.class, int.class);
+        Method getMeasuredWidth = view.getClass().getMethod("getMeasuredWidth");
+        Method getMeasuredHeight = view.getClass().getMethod("getMeasuredHeight");
+        measure.invoke(view, makeMeasureSpec(width, AT_MOST), makeMeasureSpec(height, AT_MOST));
+        return new Area.Size((Integer)getMeasuredWidth.invoke(view), (Integer)getMeasuredHeight.invoke(view));
+      } catch (Exception e) {
+        return new Area.Size(MATCH_PARENT, MATCH_PARENT);
+      }
+    }
+
+    @Override
+    protected Area.Size getLayoutParams(NlComponent component) {
+      Object layoutParams = component.viewInfo.getLayoutParamsObject();
+      try {
+        Field width = layoutParams.getClass().getField("width");
+        Field height = layoutParams.getClass().getField("height");
+        return new Area.Size((Integer)width.get(layoutParams), (Integer)height.get(layoutParams));
+      } catch (Exception e) {
+        return new Area.Size(WRAP_CONTENT, WRAP_CONTENT);
+      }
+    }
+
+    @Override
+    protected String getClassName(NlComponent component) {
+      return component.getTagName();
+    }
+
+    @Override
+    protected Area.Size getRootViewSize(NlComponent component) {
+      NlComponent rootComponent = component.getRoot();
+      return new Area.Size(rootComponent.w, rootComponent.h);
+    }
+
+    @Override
+    protected Area.Size getMinSizeRaw(NlComponent component) {
+      Object view = component.viewInfo.getViewObject();
+      try {
+        Method minWidth = view.getClass().getMethod("getMinimumWidth");
+        Method minHeight = view.getClass().getMethod("getMinimumHeight");
+        Object width = minWidth.invoke(view);
+        Object height = minHeight.invoke(view);
+        return new Area.Size((Integer)width, (Integer)height);
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+        return new Area.Size(-1, -1);
+      }
+    }
+
+    @Override
+    protected Area.Size getPreferredSizeRaw(NlComponent component) {
+      return measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
+    }
+
+    @Override
+    protected Area.Size getMaxSizeRaw(NlComponent component) {
+      Area.Size rootSize = getRootViewSize(component);
+      return measureSizeAtMost(component, (int)rootSize.getWidth(), (int)rootSize.getHeight());
+    }
+  }
+
   static private Area toArea(NlComponent component) {
     Area area = new Area();
     area.setCookie(component);
-    area.setMinSize(getMinSize(component));
-    area.setPreferredSize(getPreferredSize(component));
-    area.setMaxSize(getMaxSize(component));
+    ViewInfoParser parser = new ViewInfoParser();
+    area.setMinSize(parser.getMinSize(component));
+    area.setPreferredSize(parser.getPreferredSize(component));
+    area.setMaxSize(parser.getMaxSize(component));
+    // alignment is not needed
+    //AbstractViewInfoParser.Alignment alignment = parser.getAlignment(component);
+    //area.setAlignment(alignment.horizontalAlignment, alignment.verticalAlignment);
     return area;
   }
 
-  /**
-   * Taken from the Android source code.
-   *
-   * @param size
-   * @param mode
-   * @return
-   */
-  public static int makeMeasureSpec(int size, int mode) {
-    final int MODE_SHIFT = 30;
-    final int MODE_MASK  = 0x3 << MODE_SHIFT;
-    return (size & ~MODE_MASK) | (mode & MODE_MASK);
-  }
 
-  static public Area.Size getMinSize(NlComponent component) {
-    Object view = component.viewInfo.getViewObject();
-    try {
-      Method minWidth = view.getClass().getMethod("getMinimumWidth");
-      Method minHeight = view.getClass().getMethod("getMinimumHeight");
-      Object width = minWidth.invoke(view);
-      Object height = minHeight.invoke(view);
-      if ((Integer)width == 0 || (Integer)height == 0)
-        return getPreferredSizeRaw(component);
-      return new Area.Size((Integer)width, (Integer)height);
-    }
-    catch (Exception e) {
-      return getPreferredSizeRaw(component);
-    }
-  }
-
-  static public final int MATCH_PARENT = -1;
-  static public final int WRAP_CONTENT = -2;
-
-  static public final int AT_MOST = -2147483648;
-  static public final int EXACTLY = 1073741824;
-  static public final int UNSPECIFIED = 0;
-
-  static private Area.Size getPreferredSizeRaw(NlComponent component) {
-    return measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
-  }
-
-  static private Area.Size measureSizeAtMost(NlComponent component, int width, int height) {
-    Object view = component.viewInfo.getViewObject();
-    try {
-      Method measure = view.getClass().getMethod("measure", int.class, int.class);
-      Method getMeasuredWidth = view.getClass().getMethod("getMeasuredWidth");
-      Method getMeasuredHeight = view.getClass().getMethod("getMeasuredHeight");
-      measure.invoke(view, makeMeasureSpec(width, AT_MOST), makeMeasureSpec(height, AT_MOST));
-      return new Area.Size((Integer)getMeasuredWidth.invoke(view), (Integer)getMeasuredHeight.invoke(view));
-    } catch (Exception e) {
-      return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
-    }
-  }
-
-  static public Area.Size getPreferredSize(NlComponent component) {
-    Object layoutParams = component.viewInfo.getLayoutParamsObject();
-    int layoutParamsWidth;
-    int layoutParamsHeight;
-    try {
-      Field width = layoutParams.getClass().getField("width");
-      Field height = layoutParams.getClass().getField("height");
-      layoutParamsWidth = (Integer)width.get(layoutParams);
-      layoutParamsHeight = (Integer)height.get(layoutParams);
-    } catch (Exception e) {
-      return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
-    }
-
-    NlComponent rootComponent = component.getRoot();
-    final int rootWidth = rootComponent.w;
-    final int rootHeight = rootComponent.h;
-
-    Area.Size prefSize;
-    if (layoutParamsWidth == WRAP_CONTENT
-        || layoutParamsHeight == WRAP_CONTENT)
-      prefSize = getPreferredSizeRaw(component);
-    else
-      prefSize = new Area.Size(0, 0);
-
-    // max width
-    if (layoutParamsWidth == MATCH_PARENT)
-      prefSize.setWidth(rootWidth);
-    else if (layoutParamsWidth != WRAP_CONTENT)
-      prefSize.setWidth(layoutParamsWidth);
-
-    // max height
-    if (layoutParamsHeight == MATCH_PARENT)
-      prefSize.setHeight(rootHeight);
-    else if (layoutParamsHeight != WRAP_CONTENT)
-      prefSize.setHeight(layoutParamsHeight);
-
-    return prefSize;
-  }
-
-  static public Area.Size getMaxSize(NlComponent component) {
-    Object layoutParams = component.viewInfo.getLayoutParamsObject();
-    int layoutParamsWidth;
-    int layoutParamsHeight;
-    try {
-      Field width = layoutParams.getClass().getField("width");
-      Field height = layoutParams.getClass().getField("height");
-      layoutParamsWidth = (Integer)width.get(layoutParams);
-      layoutParamsHeight = (Integer)height.get(layoutParams);
-    } catch (Exception e) {
-      return new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
-    }
-
-    NlComponent rootComponent = component.getRoot();
-    final int rootWidth = rootComponent.w;
-    final int rootHeight = rootComponent.h;
-
-    Area.Size maxSize;
-    if (layoutParamsWidth == WRAP_CONTENT
-        || layoutParamsHeight == WRAP_CONTENT)
-      maxSize = measureSizeAtMost(component, rootWidth, rootHeight);
-    else
-      maxSize = new Area.Size(0, 0);
-
-    // max width
-    if (layoutParamsWidth == MATCH_PARENT)
-      maxSize.setWidth(rootWidth);
-    else if (layoutParamsWidth != WRAP_CONTENT)
-      maxSize.setWidth(layoutParamsWidth);
-
-    // max height
-    if (layoutParamsHeight == MATCH_PARENT)
-      maxSize.setHeight(rootHeight);
-    else if (layoutParamsHeight != WRAP_CONTENT)
-      maxSize.setHeight(layoutParamsHeight);
-
-    return maxSize;
-  }
 }

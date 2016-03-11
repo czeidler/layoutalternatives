@@ -15,6 +15,7 @@
  */
 package nz.ac.auckland.alm.alternatives.gui;
 
+import nz.ac.auckland.alm.algebra.trafo.IAlternativeClassifier;
 import nz.ac.auckland.alm.alternatives.AlternativeInfo;
 import nz.ac.auckland.alm.misc.WeakListenable;
 
@@ -30,32 +31,21 @@ public class AlternativeController extends WeakListenable<AlternativeController.
   }
 
   final private List<AlternativeInfo> alternatives;
+  final private IAlternativeClassifier classifier;
   private int selectedAlternative = -1;
 
-  public AlternativeController(List<AlternativeInfo> alternatives) {
+  public AlternativeController(List<AlternativeInfo> alternatives, IAlternativeClassifier classifier) {
     this.alternatives = alternatives;
+    this.classifier = classifier;
   }
 
-  public void sortByRatio() {
+  public void sortByObjectiveValue() {
     Collections.sort(alternatives, new Comparator<AlternativeInfo>() {
       @Override
       public int compare(AlternativeInfo a0, AlternativeInfo a1) {
-        if (a0.getPrefSizeDiff() == a1.getPrefSizeDiff())
-          return 0;
-        if (a0.getPrefSizeDiff() < a1.getPrefSizeDiff())
-          return -1;
-        else
-          return 1;
-        /*
-        if (a0.getResult().numberOfTrafos < a1.getResult().numberOfTrafos)
-          return -1;
-        if (a0.getResult().numberOfTrafos > a1.getResult().numberOfTrafos)
-          return 1;
-        // same number of trafos sort by ratio
-        double targetRatio = 16d/9;
-        if (Math.abs(a0.getPrefRatio() - targetRatio) < Math.abs(a1.getPrefRatio() - targetRatio))
-          return -1;
-        return 1;*/
+        Double objectiveValue0 = classifier.objectiveValue(a0.getResult().classification);
+        Double objectiveValue1 = classifier.objectiveValue(a1.getResult().classification);
+        return objectiveValue0.compareTo(objectiveValue1);
       }
     });
     notifyAlternativesChanged();

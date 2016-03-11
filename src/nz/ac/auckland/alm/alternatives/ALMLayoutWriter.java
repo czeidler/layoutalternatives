@@ -29,6 +29,7 @@ import com.intellij.lang.refactoring.NamesValidator;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.text.StringUtil;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.XmlElementFactory;
 import com.intellij.psi.xml.XmlAttribute;
 import com.intellij.psi.xml.XmlDocument;
@@ -51,7 +52,12 @@ class TagId {
   /** Returns the ID of this component */
   @Nullable
   static public String getId(@NonNull XmlTag tag) {
-    String id = tag.getAttributeValue(ANDROID_NS_NAME_PREFIX + ATTR_ID);
+    return getId(tag, ANDROID_NS_NAME_PREFIX + ATTR_ID);
+  }
+
+  @Nullable
+  static public String getId(@NonNull XmlTag tag, String attributeName) {
+    String id = tag.getAttributeValue(attributeName);
     if (id != null) {
       if (id.startsWith(NEW_ID_PREFIX)) {
         return id.substring(NEW_ID_PREFIX.length());
@@ -59,14 +65,15 @@ class TagId {
         return id.substring(ID_PREFIX.length());
       }
     }
-    return null;
+    return "";
   }
+
 
   /** Returns the ID, but also assigns a default id if the component does not already have an id (even if the component does
    * not need one according to {@link #needsDefaultId()} */
   public String ensureId(@NonNull XmlTag tag, @NonNull AndroidFacet facet) {
     String id = getId(tag);
-    if (id != null) {
+    if (!id.equals("")) {
       return id;
     }
 
@@ -267,28 +274,34 @@ class ALMLayoutWriter {
     }
   }
 
+  final private XmlTag sourceRoot;
   final private LayoutSpec myLayoutSpec;
   final private AndroidFacet myFacet;
   final private TagId myTagId = new TagId();
 
-  public ALMLayoutWriter(LayoutSpec layoutSpec, AndroidFacet facet) {
+  public ALMLayoutWriter(XmlTag sourceRoot, LayoutSpec layoutSpec, AndroidFacet facet) {
+    this.sourceRoot = sourceRoot;
     this.myLayoutSpec = layoutSpec;
     this.myFacet = facet;
   }
 
-  private static void clearAttribute(XmlTag tag, String uri, String attributeName) {
-    XmlAttribute attribute = tag.getAttribute(attributeName, uri);
+  private static XmlAttribute getAttribute(XmlTag tag, String attributeName) {
+    return tag.getAttribute("ale:" + attributeName);
+  }
+
+  private static void setAttribute(XmlTag tag, String attributeName, String value) {
+    tag.setAttribute("ale:" + attributeName, value);
+  }
+
+  private static void clearAttribute(XmlTag tag, String attributeName) {
+    XmlAttribute attribute = getAttribute(tag, attributeName);
     if (attribute != null)
       attribute.delete();
   }
 
-  private static void clearAttribute(XmlTag tag, String attributeName) {
-    clearAttribute(tag, ALE_URI, attributeName);
-  }
-
   @NotNull
   static private String getAttrValue(XmlTag tag, String attribute) {
-    XmlAttribute attr = tag.getAttribute(attribute, ALE_URI);
+    XmlAttribute attr = getAttribute(tag, attribute);
     if (attr == null)
       return "";
     String value = attr.getValue();
@@ -379,7 +392,7 @@ class ALMLayoutWriter {
     assert edge != null;
 
     // tab tags
-    XmlAttribute tabTag = tag.getAttribute(direction.getTabTag(), ALE_URI);
+    XmlAttribute tabTag = getAttribute(tag, direction.getTabTag());
     if (tabTag != null) {
       String tabName = tabTag.getValue();
       Iterable<Area> areas = new AreaFilter(direction.getAreas(edge));
@@ -402,7 +415,7 @@ class ALMLayoutWriter {
       if (tabFound) {
         if (!tabNames.contains(tabName))
           tabNames.add(tabName);
-        tag.setAttribute(direction.getTabTag(), ALE_URI, tabName);
+        setAttribute(tag, direction.getTabTag(), tabName);
         clearAttribute(tag, direction.getConnectionTag());
         clearAttribute(tag, direction.getAlignTag());
         return;
@@ -445,7 +458,7 @@ class ALMLayoutWriter {
         // add tab
         String uniqueTabName = getUniqueTabName(tabNames, direction.getTab(area));
         tabNames.add(uniqueTabName);
-        tag.setAttribute(direction.getTabTag(), ALE_URI, uniqueTabName);
+        setAttribute(tag, direction.getTabTag(), uniqueTabName);
         clearAttribute(tag, direction.getConnectionTag());
         clearAttribute(tag, direction.getAlignTag());
       } else {
@@ -466,14 +479,14 @@ class ALMLayoutWriter {
         continue;
       if (!handledAreas.contains(neighbour))
         continue;
-      String neighbourId = getAttrValue(getTagFor(neighbour), checkForDuplicatesAttribute);
+      String neighbourId = TagId.getId(getTagFor(neighbour), "ale:" + checkForDuplicatesAttribute);
       if (neighbourId.equals(TagId.getId(tag))) {
         clearAttribute(tag, connectAttribute);
         return;
       }
     }
 
-    tag.setAttribute("ale:" + connectAttribute, ID_PREFIX + myTagId.ensureId(getTagFor(connectToArea), myFacet));
+    setAttribute(tag, connectAttribute, ID_PREFIX + myTagId.ensureId(getTagFor(connectToArea), myFacet));
   }
 
   static private String getUniqueTabName(List<String> tabNames, Variable tab) {
@@ -514,20 +527,28 @@ class ALMLayoutWriter {
     }
   }
 
-  static public void write(Fragment fragment, XmlFile outFile, Project project, AndroidFacet facet) {
+  static public void write(XmlTag sourceRoot, Fragment fragment, XmlFile outFile, Project project, AndroidFacet facet) {
     LayoutSpec layoutSpec = FragmentUtils.toLayoutSpec(fragment);
     LayoutSpec clone = layoutSpec.clone();
     layoutSpec.release();
-    ALMLayoutWriter writer = new ALMLayoutWriter(clone, facet);
+    ALMLayoutWriter writer = new ALMLayoutWriter(sourceRoot, clone, facet);
     writer.write(outFile, project);
     clone.release();
   }
 
-  static private XmlTag copyShallow(XmlTag tag, XmlElementFactory factory) {
-    XmlTag copy = factory.createTagFromText("<" + tag.getName() + "/>");
-    for (XmlAttribute attribute : tag.getAttributes())
-      copy.setAttribute(attribute.getName(), attribute.getDisplayValue());
+  static private void copyAttributes(XmlTag source, XmlTag target) {
+    for (XmlAttribute attribute : source.getAttributes())
+      target.setAttribute(attribute.getName(), attribute.getDisplayValue());
+  }
 
+  static private XmlTag copy(XmlTag tag, XmlElementFactory factory) {
+    XmlTag copy = factory.createTagFromText("<" + tag.getName() + "/>");
+    copyAttributes(tag, copy);
+    for (PsiElement child : tag.getChildren()) {
+      if (!(child instanceof XmlTag))
+        continue;
+      copy.add(copy((XmlTag)child, factory));
+    }
     return copy;
   }
 
@@ -541,12 +562,13 @@ class ALMLayoutWriter {
     rootTag.setAttribute("xmlns:ale", "http://schemas.android.com/apk/res-auto");
     rootTag.setAttribute("android:layout_width", "match_parent");
     rootTag.setAttribute("android:layout_height", "match_parent");
+    copyAttributes(sourceRoot, rootTag);
 
     // copy tags
     for (IArea area : myLayoutSpec.getAreas()) {
       if (!(area instanceof Area))
         continue;
-      XmlTag tagCopy = copyShallow(((NlComponent)area.getCookie()).getTag(), factory);
+      XmlTag tagCopy = copy(((NlComponent)area.getCookie()).getTag(), factory);
       area.setCookie(tagCopy);
     }
 

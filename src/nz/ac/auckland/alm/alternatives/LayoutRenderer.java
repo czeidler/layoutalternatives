@@ -82,8 +82,8 @@ public class LayoutRenderer {
                     copyDocument.getProlog().delete();
                 copyDocument.add(xmlFile.getDocument().getProlog().copy());
 
-                //ALMLayoutWriter.write(fragment, copyXmlFile, project);
-                PsiLayoutWriter.write(fragment, copyXmlFile, project);
+                ALMLayoutWriter.write(xmlFile.getRootTag(), fragment, copyXmlFile, project, facet);
+                //PsiLayoutWriter.write(fragment, copyXmlFile, project);
             }
         };
         action.execute();
