@@ -46,6 +46,9 @@ import java.util.*;
 import static com.android.SdkConstants.*;
 
 
+/**
+ * Ported from NlComponent.
+ */
 class TagId {
   private List<String> myAddedIds = new ArrayList<String>();
 

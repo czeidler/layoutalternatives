@@ -129,7 +129,8 @@ public class NlComponentParser {
 
     @Override
     protected Area.Size getPreferredSizeRaw(NlComponent component) {
-      return measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
+      Area.Size prefSize = measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
+      return prefSize;
     }
 
     @Override
@@ -139,12 +140,43 @@ public class NlComponentParser {
     }
   }
 
+  static private int parseDimension(XmlAttribute attribute) {
+      final String PIXEL = "px";
+      String value = attribute.getValue();
+      if (!value.endsWith(PIXEL))
+        return Area.Size.UNDEFINED;
+      value = value.substring(0, value.length() - PIXEL.length());
+      return Integer.parseInt(value);
+  }
+
+  static private Area.Size readExplicitMinSize(NlComponent component) {
+    Area.Size explicitSize = new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
+    XmlAttribute width = component.getTag().getAttribute("ale:layout_minWidth");
+    XmlAttribute height = component.getTag().getAttribute("ale:layout_minHeight");
+    if (width != null)
+      explicitSize.setWidth(parseDimension(width));
+    if (height != null)
+      explicitSize.setHeight(parseDimension(height));
+    return explicitSize;
+  }
+
+  static private Area.Size readExplicitPrefSize(NlComponent component) {
+    Area.Size explicitPrefSize = new Area.Size(Area.Size.UNDEFINED, Area.Size.UNDEFINED);
+    XmlAttribute width = component.getTag().getAttribute("ale:layout_prefWidth");
+    XmlAttribute height = component.getTag().getAttribute("ale:layout_prefHeight");
+    if (width != null)
+      explicitPrefSize.setWidth(parseDimension(width));
+    if (height != null)
+      explicitPrefSize.setHeight(parseDimension(height));
+    return explicitPrefSize;
+  }
+
   static private Area toArea(NlComponent component) {
     Area area = new Area();
     area.setCookie(component);
     ViewInfoParser parser = new ViewInfoParser();
-    area.setMinSize(parser.getMinSize(component));
-    area.setPreferredSize(parser.getPreferredSize(component));
+    area.setMinSize(parser.getMinSize(component, readExplicitMinSize(component)));
+    area.setPreferredSize(parser.getPreferredSize(component, readExplicitPrefSize(component)));
     area.setMaxSize(parser.getMaxSize(component));
     // alignment is not needed
     //AbstractViewInfoParser.Alignment alignment = parser.getAlignment(component);

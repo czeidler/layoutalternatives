@@ -112,6 +112,17 @@ public class AlternativeInfoPanel {
         return classifier.getSymmetryTerm((AlternativeAction.Classification)info.getResult().classification);
       }
     });
+    myColumns.add(new IColumn() {
+      @Override
+      public String columnName() {
+        return "Obj Level";
+      }
+
+      @Override
+      public Object getRow(AlternativeInfo info) {
+        return classifier.getLevelTerm((AlternativeAction.Classification)info.getResult().classification);
+      }
+    });
     /*
     myColumns.add(new IColumn() {
       @Override

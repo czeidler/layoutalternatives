@@ -164,12 +164,6 @@ public class AlternativeAction extends AnAction {
             return classification;
         }
 
-        @Override
-        public List<ITransformation> selectTransformations(Fragment fragment, Classification classification) {
-            List<ITransformation> trafos = new ArrayList<ITransformation>();
-            return trafos;
-        }
-
         private boolean isInvalid(Classification classification) {
             if (classification.minSize.getWidth() > targetWidth || classification.minSize.getHeight() > targetHeight)
                 return true;
@@ -182,9 +176,10 @@ public class AlternativeAction extends AnAction {
                 return IAlternativeClassifier.INVALID_OBJECTIVE;
 
             return (3 * getPrefSizeDiffTerm(classification)
-                    + getRatioTerm(classification)
+                    + 0.1 * getRatioTerm(classification)
                     + 2 * getNTrafoTerm(classification)
-                    + 4 * getSymmetryTerm(classification)) / 4;
+                    + 4 * getSymmetryTerm(classification)
+                    + 2 * getLevelTerm(classification)) / 5;
         }
 
         public double getPrefSizeDiffTerm(Classification classification) {
@@ -208,6 +203,21 @@ public class AlternativeAction extends AnAction {
 
         public double getSymmetryTerm(Classification classification) {
             return classification.orientationWeight;
+        }
+
+        public double getLevelTerm(Classification classification) {
+            List<TrafoHistory.Entry> entries = classification.trafoHistory.getEntries();
+            if (entries.size() == 0)
+                return 0d;
+            TrafoHistory.Entry lastEntry = entries.get(entries.size() - 1);
+            double level = 0;
+            for (FragmentRef ref : lastEntry.fragmentRefs) {
+                if (ref == null)
+                    continue;
+                level = ref.getNLevels();
+                break;
+            }
+            return level / 5;
         }
     }
 
@@ -254,9 +264,11 @@ public class AlternativeAction extends AnAction {
 
         FragmentAlternatives fragmentAlternatives = new FragmentAlternatives(classifier, new FilteredGroupDetector(comparator));
         SwapTrafo swapTrafo = new SwapTrafo();
+        ColumnTrafo columnTrafo = new ColumnTrafo();
+        InverseRowFlowTrafo inverseRowFlowTrafo = new InverseRowFlowTrafo();
         fragmentAlternatives.addTrafo(swapTrafo);
-        fragmentAlternatives.addTrafo(new ColumnFlowTrafo());
-        fragmentAlternatives.addTrafo(new InverseRowFlowTrafo());
+        fragmentAlternatives.addTrafo(columnTrafo);
+        fragmentAlternatives.addTrafo(inverseRowFlowTrafo);
 
         List<ITransformation> trafos = fragmentAlternatives.getTrafos();
         List<FragmentAlternatives.Result> alternatives = new ArrayList<FragmentAlternatives.Result>();
@@ -264,9 +276,11 @@ public class AlternativeAction extends AnAction {
         IPermutationSelector<Classification> selector
           = new ChainPermutationSelector<Classification>(
           new ApplyToAllPermutationSelector<Classification>(trafos, swapTrafo),
+          new ApplyToAllPermutationSelector<Classification>(trafos, columnTrafo),
+          new ApplyToAllPermutationSelector<Classification>(trafos, inverseRowFlowTrafo),
           new RandomPermutationSelector<Classification>(trafos));
 
-        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 50, 1000 * 60);
+        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 100, 2*1000 * 60);
         for (FragmentAlternatives.Result result : results) {
             if (getEquivalent(alternatives, result.fragment) < 0)
                 alternatives.add(result);

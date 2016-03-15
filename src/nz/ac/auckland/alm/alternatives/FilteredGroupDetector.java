@@ -20,6 +20,7 @@ import nz.ac.auckland.alm.IArea;
 import nz.ac.auckland.alm.algebra.Fragment;
 import nz.ac.auckland.alm.algebra.trafo.GroupDetector;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -62,14 +63,19 @@ public class FilteredGroupDetector extends GroupDetector {
   @Override
   public List<Fragment> detect(Fragment fragment) {
     List<Fragment> groups = super.detect(fragment);
-    if (groups.size() <= 1)
+    if (groups.size() <= 1) {
+      groups.add(fragment);
       return groups;
+    }
     Collections.sort(groups, new Comparator<Fragment>() {
       @Override
       public int compare(Fragment fragment0, Fragment fragment1) {
         return classifiy(fragment1).compareTo(classifiy(fragment0));
       }
     });
-    return Collections.singletonList(groups.get(0));
+    List<Fragment> out = new ArrayList<Fragment>();
+    out.add(groups.get(0));
+    out.add(fragment);
+    return out;
   }
 }
