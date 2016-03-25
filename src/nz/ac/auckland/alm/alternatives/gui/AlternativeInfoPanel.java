@@ -19,8 +19,7 @@ import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import nz.ac.auckland.alm.algebra.Fragment;
 import nz.ac.auckland.alm.algebra.trafo.IAlternativeClassifier;
-import nz.ac.auckland.alm.alternatives.AlternativeAction;
-import nz.ac.auckland.alm.alternatives.AlternativeInfo;
+import nz.ac.auckland.alm.alternatives.*;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -38,7 +37,7 @@ public class AlternativeInfoPanel {
   }
 
   static public JPanel create(Fragment main, final AlternativeController alternativeController,
-                              final AlternativeAction.Classifier classifier) {
+                              final Classifier classifier) {
     final List<AlternativeInfo> alternativeInfos = alternativeController.getAlternatives();
 
     JPanel panel = new JPanel();
@@ -65,64 +64,22 @@ public class AlternativeInfoPanel {
 
       @Override
       public Object getRow(AlternativeInfo info) {
-        return classifier.objectiveValue((AlternativeAction.Classification)info.getResult().classification);
+        return classifier.objectiveValue((Classification)info.getResult().classification);
       }
     });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Obj Pref Size";
-      }
+    for (final ObjectiveTerm term : classifier.getObjectiveTerms()) {
+      myColumns.add(new IColumn() {
+        @Override
+        public String columnName() {
+          return term.getName() + "(" + term.getWeight() + ")";
+        }
 
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return classifier.getPrefSizeDiffTerm((AlternativeAction.Classification)info.getResult().classification);
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Obj Ratio";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return classifier.getRatioTerm((AlternativeAction.Classification)info.getResult().classification);
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Obj NTrafo";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return classifier.getNTrafoTerm((AlternativeAction.Classification)info.getResult().classification);
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Obj Symmetry";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return classifier.getSymmetryTerm((AlternativeAction.Classification)info.getResult().classification);
-      }
-    });
-    myColumns.add(new IColumn() {
-      @Override
-      public String columnName() {
-        return "Obj Level";
-      }
-
-      @Override
-      public Object getRow(AlternativeInfo info) {
-        return classifier.getLevelTerm((AlternativeAction.Classification)info.getResult().classification);
-      }
-    });
+        @Override
+        public Object getRow(AlternativeInfo info) {
+          return term.getWeight() * term.value((Classification)info.getResult().classification);
+        }
+      });
+    }
     /*
     myColumns.add(new IColumn() {
       @Override

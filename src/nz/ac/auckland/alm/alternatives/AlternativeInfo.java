@@ -36,11 +36,11 @@ public class AlternativeInfo {
     }
 
     public Area.Size getMinSize() {
-        return ((AlternativeAction.Classification)result.classification).minSize;
+        return ((Classification)result.classification).minSize;
     }
 
     public Area.Size getPrefSize() {
-        return ((AlternativeAction.Classification)result.classification).prefSize;
+        return ((Classification)result.classification).prefSize;
     }
 
     public double getPrefRatio() {

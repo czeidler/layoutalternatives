@@ -38,6 +38,7 @@ import nz.ac.auckland.alm.algebra.FragmentUtils;
 import nz.ac.auckland.alm.algebra.trafo.*;
 import nz.ac.auckland.alm.alternatives.gui.AlternativeController;
 import nz.ac.auckland.alm.alternatives.gui.AlternativeInfoPanel;
+import nz.ac.auckland.alm.alternatives.gui.AlternativeMain;
 import org.jetbrains.android.dom.layout.LayoutDomFileDescription;
 import org.jetbrains.android.facet.AndroidFacet;
 
@@ -104,123 +105,6 @@ public class AlternativeAction extends AnAction {
         return -1;
     }
 
-    static public class Classification {
-        public TrafoHistory trafoHistory;
-        public Area.Size minSize;
-        public Area.Size prefSize;
-        public double childrenPrefDiff2Width;
-        public double childrenPrefDiff2Height;
-        public float orientationWeight;
-    }
-
-    static public class Classifier implements IAlternativeClassifier<Classification> {
-        private float targetWidth;
-        private float targetHeight;
-
-        @Override
-        public Classification classify(Fragment fragment, TrafoHistory history) {
-            Classification classification = new Classification();
-            classification.trafoHistory = history;
-
-            LayoutSpec layoutSpec = FragmentUtils.toLayoutSpec(fragment);
-
-            if (targetWidth == 0f) {
-                NlComponent component = (NlComponent)layoutSpec.getAreas().get(0).getCookie();
-                NlComponent root = component.getRoot();
-                targetWidth = root.h;
-                targetHeight = root.w;
-            }
-
-            classification.minSize = layoutSpec.getMinSize();
-            if (isInvalid(classification)) {
-                layoutSpec.release();
-                return classification;
-            }
-            classification.prefSize = layoutSpec.getPreferredSize();
-
-            if (layoutSpec.getAreas().size() > 0) {
-                if (layoutSpec.getAreas().get(0).getCookie() != null) {
-                    layoutSpec.setRight(targetWidth);
-                    layoutSpec.setBottom(targetHeight);
-                    layoutSpec.solve();
-                }
-            }
-            layoutSpec.release();
-
-            List<Area> areas = FragmentUtils.getAreas(fragment);
-            for (Area area : areas) {
-                double width = area.getRight().getValue() - area.getLeft().getValue();
-                double height = area.getBottom().getValue() - area.getTop().getValue();
-                Area.Size areaPrefSize = area.getPreferredSize();
-                classification.childrenPrefDiff2Width += Math.pow(width - areaPrefSize.getWidth(), 2);
-                classification.childrenPrefDiff2Height += Math.pow(height - areaPrefSize.getHeight(), 2);
-            }
-            classification.childrenPrefDiff2Width /= areas.size();
-            classification.childrenPrefDiff2Height /= areas.size();
-
-            float summedFragmentWeight = SymmetryAnalyzer.summedFragmentWeights(fragment);
-            float summedFragmentWeightSameOrientation = SymmetryAnalyzer.summedFragmentWeightSameOrientation(fragment);
-            classification.orientationWeight = 1 - summedFragmentWeightSameOrientation / summedFragmentWeight;
-            return classification;
-        }
-
-        private boolean isInvalid(Classification classification) {
-            if (classification.minSize.getWidth() > targetWidth || classification.minSize.getHeight() > targetHeight)
-                return true;
-            return false;
-        }
-
-        @Override
-        public double objectiveValue(Classification classification) {
-            if (isInvalid(classification))
-                return IAlternativeClassifier.INVALID_OBJECTIVE;
-
-            return (3 * getPrefSizeDiffTerm(classification)
-                    + 0.1 * getRatioTerm(classification)
-                    + 2 * getNTrafoTerm(classification)
-                    + 4 * getSymmetryTerm(classification)
-                    + 2 * getLevelTerm(classification)) / 5;
-        }
-
-        public double getPrefSizeDiffTerm(Classification classification) {
-            return (classification.childrenPrefDiff2Width + classification.childrenPrefDiff2Height)
-                   / (Math.pow(targetWidth, 2) + Math.pow(targetHeight, 2));
-        }
-
-        public double getRatioTerm(Classification classification) {
-            double ratio = classification.prefSize.getWidth() / classification.prefSize.getHeight();
-            double targetRatio = targetWidth / targetHeight;
-            // assume a height of 1 and compare the resulting width, i.e. the ratios
-            double ratioValue = Math.abs(ratio  - targetRatio) / targetRatio;
-            if (ratioValue > 1d)
-                return 1d;
-            return ratioValue;
-        }
-
-        public double getNTrafoTerm(Classification classification) {
-            return (double)classification.trafoHistory.getNTrafos() / 5;
-        }
-
-        public double getSymmetryTerm(Classification classification) {
-            return classification.orientationWeight;
-        }
-
-        public double getLevelTerm(Classification classification) {
-            List<TrafoHistory.Entry> entries = classification.trafoHistory.getEntries();
-            if (entries.size() == 0)
-                return 0d;
-            TrafoHistory.Entry lastEntry = entries.get(entries.size() - 1);
-            double level = 0;
-            for (FragmentRef ref : lastEntry.fragmentRefs) {
-                if (ref == null)
-                    continue;
-                level = ref.getNLevels();
-                break;
-            }
-            return level / 5;
-        }
-    }
-
     private Classifier classifier = new Classifier();
 
     @Override
@@ -278,9 +162,10 @@ public class AlternativeAction extends AnAction {
           new ApplyToAllPermutationSelector<Classification>(trafos, swapTrafo),
           new ApplyToAllPermutationSelector<Classification>(trafos, columnTrafo),
           new ApplyToAllPermutationSelector<Classification>(trafos, inverseRowFlowTrafo),
-          new RandomPermutationSelector<Classification>(trafos));
+          new RandomPermutationSelector<Classification>(trafos)
+        );
 
-        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 100, 2*1000 * 60);
+        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 100, 1 * 1000 * 60);
         for (FragmentAlternatives.Result result : results) {
             if (getEquivalent(alternatives, result.fragment) < 0)
                 alternatives.add(result);
@@ -292,68 +177,6 @@ public class AlternativeAction extends AnAction {
 
         AlternativeController alternativeController = new  AlternativeController(alternativeInfos, classifier);
         alternativeController.sortByObjectiveValue();
-        showAlternatives(xmlFile, mainFragment, alternativeController, layoutRenderer);
-    }
-
-    private void showAlternatives(XmlFile rootXmlFile, Fragment main, AlternativeController alternativeController,
-                                  LayoutRenderer layoutRenderer) {
-        JDialog dialog = new JDialog();
-        dialog.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        dialog.setTitle("Layout Alternatives");
-
-
-        JSplitPane infoPanel = new JSplitPane(JSplitPane.VERTICAL_SPLIT,
-                                              AlternativeInfoPanel.create(main, alternativeController, classifier),
-                                              layoutRenderer.createView(rootXmlFile, false));
-        infoPanel.setDividerLocation(400);
-
-        JPanel alternativeView = getAlternativeView(alternativeController, layoutRenderer);
-
-        JSplitPane mainPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                                             infoPanel, alternativeView);
-        mainPane.setDividerLocation(400);
-
-        dialog.add(mainPane);
-
-        dialog.pack();
-        dialog.setLocationRelativeTo(null);
-        dialog.setVisible(true);
-    }
-
-    private AlternativeController.IListener alternativeViewListener;
-    
-    private JPanel getAlternativeView(final AlternativeController alternativeController, final LayoutRenderer layoutRenderer) {
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        final Label label = new Label();
-        mainPanel.add(label);
-        final JPanel previewPanel = new JPanel(new BorderLayout());
-        mainPanel.add(previewPanel);
-
-        // keep a hard ref:
-        alternativeViewListener = new AlternativeController.IListener() {
-            @Override
-            public void onAlternativesChanged() {
-                
-            }
-
-            @Override
-            public void onAlternativeSelected(int i) {
-                AlternativeInfo alternativeInfo = alternativeController.getAlternatives().get(i);
-                if (previewPanel.getComponents().length > 0)
-                    previewPanel.remove(0);
-                label.setText("Alternative: " + alternativeInfo.getFragment());
-                previewPanel.add(layoutRenderer.getDesignSurface(alternativeInfo.getFragment()));
-                previewPanel.revalidate();
-                previewPanel.repaint();
-                Container parent = previewPanel.getParent();
-                if (parent != null) {
-                    parent.invalidate();
-                    parent.repaint();
-                }
-            }
-        };
-        alternativeController.addListener(alternativeViewListener);
-        return mainPanel;
+        AlternativeMain.showAlternatives(xmlFile, mainFragment, alternativeController, layoutRenderer, classifier);
     }
 }
