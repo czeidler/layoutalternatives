@@ -75,13 +75,13 @@ public class NlComponentParser {
       return (size & ~MODE_MASK) | (mode & MODE_MASK);
     }
 
-    static private Area.Size measureSizeAtMost(NlComponent component, int width, int height) {
+    static private Area.Size measureSize(NlComponent component, int width, int height, int mode) {
       Object view = component.viewInfo.getViewObject();
       try {
         Method measure = view.getClass().getMethod("measure", int.class, int.class);
         Method getMeasuredWidth = view.getClass().getMethod("getMeasuredWidth");
         Method getMeasuredHeight = view.getClass().getMethod("getMeasuredHeight");
-        measure.invoke(view, makeMeasureSpec(width, AT_MOST), makeMeasureSpec(height, AT_MOST));
+        measure.invoke(view, makeMeasureSpec(width, mode), makeMeasureSpec(height, mode));
         return new Area.Size((Integer)getMeasuredWidth.invoke(view), (Integer)getMeasuredHeight.invoke(view));
       } catch (Exception e) {
         return new Area.Size(MATCH_PARENT, MATCH_PARENT);
@@ -129,14 +129,15 @@ public class NlComponentParser {
 
     @Override
     protected Area.Size getPreferredSizeRaw(NlComponent component) {
-      Area.Size prefSize = measureSizeAtMost(component, WRAP_CONTENT, WRAP_CONTENT);
+      //Area.Size prefSize = measureSize(component, 0, 0, UNSPECIFIED);
+      Area.Size prefSize = getMaxSizeRaw(component);
       return prefSize;
     }
 
     @Override
     protected Area.Size getMaxSizeRaw(NlComponent component) {
       Area.Size rootSize = getRootViewSize(component);
-      return measureSizeAtMost(component, (int)rootSize.getWidth(), (int)rootSize.getHeight());
+      return measureSize(component, (int)rootSize.getWidth(), (int)rootSize.getHeight(), AT_MOST);
     }
   }
 
