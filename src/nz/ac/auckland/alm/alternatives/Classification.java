@@ -25,6 +25,4 @@ public class Classification {
   public double childrenPrefDiff2Width;
   public double childrenPrefDiff2Height;
   public float symmetryTerm;
-  public float symmetryTerm2;
-  public float levelSymmetryTerm;
 }

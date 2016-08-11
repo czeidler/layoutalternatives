@@ -30,20 +30,14 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.xml.XmlFile;
-import nz.ac.auckland.alm.Area;
 import nz.ac.auckland.alm.IArea;
-import nz.ac.auckland.alm.LayoutSpec;
 import nz.ac.auckland.alm.algebra.Fragment;
-import nz.ac.auckland.alm.algebra.FragmentUtils;
 import nz.ac.auckland.alm.algebra.trafo.*;
 import nz.ac.auckland.alm.alternatives.gui.AlternativeController;
-import nz.ac.auckland.alm.alternatives.gui.AlternativeInfoPanel;
 import nz.ac.auckland.alm.alternatives.gui.AlternativeMain;
 import org.jetbrains.android.dom.layout.LayoutDomFileDescription;
 import org.jetbrains.android.facet.AndroidFacet;
 
-import javax.swing.*;
-import java.awt.*;
 import java.util.*;
 import java.util.List;
 
@@ -136,6 +130,7 @@ public class AlternativeAction extends AnAction {
         NlModel model = NlModel.create(surface, nlEditor, facet, xmlFile);
         surface.setModel(model);
         model.renderImmediately();
+        nlEditor.dispose();
 
         if (model.getComponents().size() != 1)
             return;
@@ -165,7 +160,7 @@ public class AlternativeAction extends AnAction {
           new RandomPermutationSelector<Classification>(trafos)
         );
 
-        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 100, 1 * 1000 * 60);
+        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 400, 5 * 1000 * 60);
         for (FragmentAlternatives.Result result : results) {
             if (getEquivalent(alternatives, result.fragment) < 0)
                 alternatives.add(result);
@@ -175,8 +170,8 @@ public class AlternativeAction extends AnAction {
         for (FragmentAlternatives.Result alternative : alternatives)
             alternativeInfos.add(new AlternativeInfo(alternative));
 
-        AlternativeController alternativeController = new  AlternativeController(alternativeInfos, classifier);
+        AlternativeController alternativeController = new  AlternativeController(psiFile.getName(), alternativeInfos, classifier);
         alternativeController.sortByObjectiveValue();
-        AlternativeMain.showAlternatives(xmlFile, mainFragment, alternativeController, layoutRenderer, classifier);
+        AlternativeMain.showAlternatives(project, xmlFile, mainFragment, alternativeController, layoutRenderer, classifier);
     }
 }

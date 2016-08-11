@@ -437,7 +437,7 @@ class ALMLayoutWriter {
     Iterator<Area> oppositeNeighbours = new AreaFilter(direction.getOppositeAreas(edge), area).iterator();
     if (neighbours.hasNext()) {
       // connect to
-      connectToArea = pickArea(neighbours, lastArea);
+      connectToArea = pickArea(neighbours, handledAreas, lastArea);
       connectAttribute = direction.getConnectionTag();
       checkForDuplicatesAttribute = direction.getOppositeConnectionTag();
       checkForDuplicatesAreas = direction.getAreas(edge);
@@ -446,7 +446,7 @@ class ALMLayoutWriter {
     }
     if (connectToArea == null && oppositeNeighbours.hasNext()) {
       // align with
-      connectToArea = pickArea(oppositeNeighbours, lastArea);
+      connectToArea = pickArea(oppositeNeighbours, handledAreas, lastArea);
       connectAttribute = direction.getAlignTag();
       checkForDuplicatesAttribute = direction.getOppositeAlignTag();
       checkForDuplicatesAreas = direction.getOppositeAreas(edge);
@@ -477,17 +477,19 @@ class ALMLayoutWriter {
     assert checkForDuplicatesAreas != null;
 
     // Check for an existing valid connection and clear the attribute if there is one. This avoids redundant attributes.
-    for (IArea neighbour : checkForDuplicatesAreas) {
+    /*for (IArea neighbour : checkForDuplicatesAreas) {
       if (!isArea(neighbour))
         continue;
       if (!handledAreas.contains(neighbour))
         continue;
-      String neighbourId = TagId.getId(getTagFor(neighbour), "ale:" + checkForDuplicatesAttribute);
+      XmlTag neighbourTag = getTagFor(neighbour);
+      String neighbourId = TagId.getId(neighbourTag, "ale:" + checkForDuplicatesAttribute);
       if (neighbourId.equals(TagId.getId(tag))) {
         clearAttribute(tag, connectAttribute);
+        //clearAttribute(neighbourTag, "ale:" + checkForDuplicatesAttribute);
         return;
       }
-    }
+    }*/
 
     setAttribute(tag, connectAttribute, ID_PREFIX + myTagId.ensureId(getTagFor(connectToArea), myFacet));
   }
@@ -586,9 +588,11 @@ class ALMLayoutWriter {
     xmlDocument.add(rootTag);
   }
 
-  static private Area pickArea(Iterator<Area> areas, Area veto) {
+  static private Area pickArea(Iterator<Area> areas, List<Area> handledAreas, Area veto) {
     while (areas.hasNext()) {
       Area area = areas.next();
+      if (!handledAreas.contains(area))
+        continue;
       if (area == veto)
         continue;
       return area;

@@ -179,9 +179,6 @@ public class NlComponentParser {
     area.setMinSize(parser.getMinSize(component, readExplicitMinSize(component)));
     area.setPreferredSize(parser.getPreferredSize(component, readExplicitPrefSize(component)));
     area.setMaxSize(parser.getMaxSize(component));
-    // alignment is not needed
-    //AbstractViewInfoParser.Alignment alignment = parser.getAlignment(component);
-    //area.setAlignment(alignment.horizontalAlignment, alignment.verticalAlignment);
     return area;
   }
 

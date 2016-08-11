@@ -34,52 +34,40 @@ public class Classifier implements IAlternativeClassifier<Classification> {
   private float targetHeight;
 
   final private List<ObjectiveTerm> objectiveTerms = new ArrayList<ObjectiveTerm>();
-
+  // manual values: 0.1, 5, 0.2, 0.02, 0.5, 0.1
+  // auto values: 0.1660961969756879, 0.6032269451239768, 0.011315961345100378, 0.022983098304970133, 0.14937804418813272, 0.04699981222005293
   public Classifier() {
-    objectiveTerms.add(new ObjectiveTerm("Min Size", 0.2f) {
+    objectiveTerms.add(new ObjectiveTerm("Min Size", 0.1660961969756879f) {
       @Override
       public double value(Classification classification) {
         return getMinSizeTerm(classification);
       }
     });
-    objectiveTerms.add(new ObjectiveTerm("Pref Size", 5.f) {
+    objectiveTerms.add(new ObjectiveTerm("Pref Size", 0.6032269451239768f) {
       @Override
       public double value(Classification classification) {
         return getPrefSizeDiffTerm(classification);
       }
     });
-    objectiveTerms.add(new ObjectiveTerm("Pref Ratio", 0.2f) {
+    objectiveTerms.add(new ObjectiveTerm("Pref Ratio", 0.011315961345100378f) {
       @Override
       public double value(Classification classification) {
         return getRatioTerm(classification);
       }
     });
-    objectiveTerms.add(new ObjectiveTerm("N Trafos", 0.2f) {
+    objectiveTerms.add(new ObjectiveTerm("N Trafos", 0.022983098304970133f) {
       @Override
       public double value(Classification classification) {
         return getNTrafoTerm(classification);
       }
     });
-    /*objectiveTerms.add(new ObjectiveTerm("Sym", 0.1f) {
+    objectiveTerms.add(new ObjectiveTerm("Sym", 0.14937804418813272f) {
       @Override
       public double value(Classification classification) {
-        return getSymmetryTerm(classification);
+        return classification.symmetryTerm;
       }
     });
-    objectiveTerms.add(new ObjectiveTerm("Level Sym", 0.5f) {
-      @Override
-      public double value(Classification classification) {
-        return getLevelSymmetryTerm(classification);
-      }
-    });
-    */
-    objectiveTerms.add(new ObjectiveTerm("Sym2", 0.7f) {
-      @Override
-      public double value(Classification classification) {
-        return classification.symmetryTerm2;
-      }
-    });
-    objectiveTerms.add(new ObjectiveTerm("Level", 0.2f) {
+    objectiveTerms.add(new ObjectiveTerm("Level", 0.04699981222005293f) {
       @Override
       public double value(Classification classification) {
         return getLevelTerm(classification);
@@ -135,15 +123,7 @@ public class Classifier implements IAlternativeClassifier<Classification> {
     classification.childrenPrefDiff2Width /= areas.size();
     classification.childrenPrefDiff2Height /= areas.size();
 
-    int fragmentCount = SymmetryAnalyzer.countFragments(fragment);
-    float symmetryCount = SymmetryAnalyzer.symmetryCountSameChildrenSize(fragment);
-    classification.symmetryTerm = 1.f - symmetryCount / fragmentCount;
-
-    int numberOfElementsInLevels = SymmetryAnalyzer.numberOfElementsInLevels(fragment);
-    float levelSymmetryCount = SymmetryAnalyzer.levelSymmetry(fragment);
-    classification.levelSymmetryTerm = 1f - levelSymmetryCount / numberOfElementsInLevels;
-
-    classification.symmetryTerm2 = 1.f - SymmetryAnalyzer.symmetryClassifier(fragment);
+    classification.symmetryTerm = 1.f - SymmetryAnalyzer.symmetryClassifier(fragment);
     return classification;
   }
 
@@ -186,15 +166,14 @@ public class Classifier implements IAlternativeClassifier<Classification> {
   }
 
   public double getNTrafoTerm(Classification classification) {
-    return (double)classification.trafoHistory.getNTrafos() / 5;
+    int nTrafos = classification.trafoHistory.getNTrafos();
+    if (nTrafos > 5)
+      return 5;
+    return nTrafos;
   }
 
   public double getSymmetryTerm(Classification classification) {
     return classification.symmetryTerm;
-  }
-
-  public double getLevelSymmetryTerm(Classification classification) {
-    return classification.levelSymmetryTerm;
   }
 
   public double getLevelTerm(Classification classification) {
@@ -209,6 +188,8 @@ public class Classifier implements IAlternativeClassifier<Classification> {
       level = ref.getNLevels();
       break;
     }
-    return level / 5;
+    if (level > 5)
+      return 5;
+    return level;
   }
 }

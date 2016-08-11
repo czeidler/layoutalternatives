@@ -30,11 +30,13 @@ public class AlternativeController extends WeakListenable<AlternativeController.
     void onAlternativeSelected(int i);
   }
 
+  final private String fileName;
   final private List<AlternativeInfo> alternatives;
   final private IAlternativeClassifier classifier;
   private int selectedAlternative = -1;
 
-  public AlternativeController(List<AlternativeInfo> alternatives, IAlternativeClassifier classifier) {
+  public AlternativeController(String fileName, List<AlternativeInfo> alternatives, IAlternativeClassifier classifier) {
+    this.fileName = fileName;
     this.alternatives = alternatives;
     this.classifier = classifier;
   }
@@ -56,6 +58,10 @@ public class AlternativeController extends WeakListenable<AlternativeController.
       return;
     this.selectedAlternative = i;
     notifyAlternativeSelected(i);
+  }
+
+  public String getFileName() {
+    return fileName;
   }
 
   public int getSelectedAlternative() {

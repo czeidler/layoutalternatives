@@ -49,13 +49,12 @@ public class LayoutRenderer {
         return facet;
     }
 
-    public DesignSurface getDesignSurface(final Fragment fragment) {
-        return getDesignSurface(fragment, false);
-    }
-
-    public DesignSurface getDesignSurface(final Fragment fragment, boolean renderImmediately) {
+    public DesignSurface getDesignSurface(DesignSurface reuse, final Fragment fragment, boolean renderImmediately,
+                                          boolean refreshResources) {
         XmlFile copyXmlFile = createLandFile(fragment);
-        return createView(copyXmlFile, renderImmediately);
+        if (refreshResources)
+            facet.refreshResources();
+        return createView(reuse, copyXmlFile, renderImmediately);
     }
 
     public XmlFile createLandFile(final Fragment fragment) {
@@ -91,8 +90,10 @@ public class LayoutRenderer {
         return copyXmlFile;
     }
 
-    public DesignSurface createView(XmlFile xmlFile, boolean renderImmediately) {
-        DesignSurface surface = new DesignSurface(project);
+    public DesignSurface createView(DesignSurface reuse, XmlFile xmlFile, boolean renderImmediately) {
+        DesignSurface surface = reuse;
+        if (surface == null)
+            surface = new DesignSurface(project);
         NlEditor nlEditor = new NlEditor(facet, xmlFile.getVirtualFile(), project);
         NlModel model = NlModel.create(surface, nlEditor, facet, xmlFile);
         surface.setModel(model);
@@ -100,6 +101,8 @@ public class LayoutRenderer {
             model.renderImmediately();
         else
             model.requestRenderAsap();
+        nlEditor.dispose();
+        model.dispose();
         return surface;
     }
 }
