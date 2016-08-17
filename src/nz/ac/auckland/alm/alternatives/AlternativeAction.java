@@ -17,6 +17,7 @@ package nz.ac.auckland.alm.alternatives;
 
 import com.android.tools.idea.AndroidPsiUtils;
 import com.android.tools.idea.uibuilder.editor.NlEditor;
+import com.android.tools.idea.uibuilder.editor.NlEditorPanel;
 import com.android.tools.idea.uibuilder.model.NlComponent;
 import com.android.tools.idea.uibuilder.model.NlModel;
 import com.android.tools.idea.uibuilder.surface.DesignSurface;
@@ -99,8 +100,6 @@ public class AlternativeAction extends AnAction {
         return -1;
     }
 
-    private Classifier classifier = new Classifier();
-
     @Override
     public void actionPerformed(AnActionEvent e) {
         final Project project = e.getProject();
@@ -125,11 +124,12 @@ public class AlternativeAction extends AnAction {
         LayoutRenderer layoutRenderer = new LayoutRenderer(project, xmlFile);
 
         // main layout
-        DesignSurface surface = new DesignSurface(project);
         NlEditor nlEditor = new NlEditor(facet, virtualFile, project);
+        NlEditorPanel nlEditorPanel = new NlEditorPanel(nlEditor, facet, virtualFile);
+        DesignSurface surface = new DesignSurface(project, nlEditorPanel);
         NlModel model = NlModel.create(surface, nlEditor, facet, xmlFile);
         surface.setModel(model);
-        model.renderImmediately();
+        model.render();
         nlEditor.dispose();
 
         if (model.getComponents().size() != 1)
@@ -141,6 +141,7 @@ public class AlternativeAction extends AnAction {
             return;
         Fragment mainFragment = (Fragment)item;
 
+        Classifier classifier = new Classifier(root.h, root.w);
         FragmentAlternatives fragmentAlternatives = new FragmentAlternatives(classifier, new FilteredGroupDetector(comparator));
         SwapTrafo swapTrafo = new SwapTrafo();
         ColumnTrafo columnTrafo = new ColumnTrafo();

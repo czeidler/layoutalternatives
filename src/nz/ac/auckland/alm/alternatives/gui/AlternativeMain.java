@@ -21,8 +21,8 @@ import com.intellij.psi.xml.XmlFile;
 import com.intellij.ui.components.panels.HorizontalLayout;
 import com.intellij.util.ui.UIUtil;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.algebra.trafo.Classifier;
 import nz.ac.auckland.alm.alternatives.AlternativeInfo;
-import nz.ac.auckland.alm.alternatives.Classifier;
 import nz.ac.auckland.alm.alternatives.LayoutRenderer;
 
 import javax.imageio.ImageIO;

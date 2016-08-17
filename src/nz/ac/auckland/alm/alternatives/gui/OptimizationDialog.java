@@ -15,10 +15,10 @@
  */
 package nz.ac.auckland.alm.alternatives.gui;
 
+import nz.ac.auckland.alm.algebra.trafo.Classification;
+import nz.ac.auckland.alm.algebra.trafo.Classifier;
+import nz.ac.auckland.alm.algebra.trafo.ObjectiveTerm;
 import nz.ac.auckland.alm.alternatives.AlternativeInfo;
-import nz.ac.auckland.alm.alternatives.Classification;
-import nz.ac.auckland.alm.alternatives.Classifier;
-import nz.ac.auckland.alm.alternatives.ObjectiveTerm;
 import nz.ac.auckland.linsolve.*;
 
 import javax.swing.*;

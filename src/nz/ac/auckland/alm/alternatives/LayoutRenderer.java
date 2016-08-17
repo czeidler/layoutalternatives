@@ -16,6 +16,7 @@
 package nz.ac.auckland.alm.alternatives;
 
 import com.android.tools.idea.uibuilder.editor.NlEditor;
+import com.android.tools.idea.uibuilder.editor.NlEditorPanel;
 import com.android.tools.idea.uibuilder.model.NlModel;
 import com.android.tools.idea.uibuilder.surface.DesignSurface;
 import com.intellij.openapi.application.Result;
@@ -92,15 +93,17 @@ public class LayoutRenderer {
 
     public DesignSurface createView(DesignSurface reuse, XmlFile xmlFile, boolean renderImmediately) {
         DesignSurface surface = reuse;
-        if (surface == null)
-            surface = new DesignSurface(project);
         NlEditor nlEditor = new NlEditor(facet, xmlFile.getVirtualFile(), project);
+        NlEditorPanel nlEditorPanel = new NlEditorPanel(nlEditor, facet, xmlFile.getVirtualFile());
+        if (surface == null)
+            surface = new DesignSurface(project, nlEditorPanel);
+
         NlModel model = NlModel.create(surface, nlEditor, facet, xmlFile);
         surface.setModel(model);
         if (renderImmediately)
-            model.renderImmediately();
+            model.render();
         else
-            model.requestRenderAsap();
+            model.requestRender();
         nlEditor.dispose();
         model.dispose();
         return surface;

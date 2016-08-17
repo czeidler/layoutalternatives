@@ -18,6 +18,9 @@ package nz.ac.auckland.alm.alternatives.gui;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.table.JBTable;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.algebra.trafo.Classification;
+import nz.ac.auckland.alm.algebra.trafo.Classifier;
+import nz.ac.auckland.alm.algebra.trafo.ObjectiveTerm;
 import nz.ac.auckland.alm.alternatives.*;
 
 import javax.swing.*;

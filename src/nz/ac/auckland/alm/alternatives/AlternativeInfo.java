@@ -17,6 +17,7 @@ package nz.ac.auckland.alm.alternatives;
 
 import nz.ac.auckland.alm.Area;
 import nz.ac.auckland.alm.algebra.Fragment;
+import nz.ac.auckland.alm.algebra.trafo.Classification;
 import nz.ac.auckland.alm.algebra.trafo.FragmentAlternatives;
 
 
