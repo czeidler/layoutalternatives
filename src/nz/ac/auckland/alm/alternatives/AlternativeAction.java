@@ -161,7 +161,7 @@ public class AlternativeAction extends AnAction {
           new RandomPermutationSelector<Classification>(trafos)
         );
 
-        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 400, 5 * 1000 * 60);
+        List<FragmentAlternatives.Result> results = fragmentAlternatives.calculateAlternatives(mainFragment, selector, 300, 5 * 1000 * 60, 40);
         for (FragmentAlternatives.Result result : results) {
             if (getEquivalent(alternatives, result.fragment) < 0)
                 alternatives.add(result);
