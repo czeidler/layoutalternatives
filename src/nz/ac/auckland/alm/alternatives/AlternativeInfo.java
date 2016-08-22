@@ -22,10 +22,12 @@ import nz.ac.auckland.alm.algebra.trafo.FragmentAlternatives;
 
 
 public class AlternativeInfo {
-    private FragmentAlternatives.Result result;
+    final private FragmentAlternatives.Result result;
+    final private String layoutTargetDir;
 
-    public AlternativeInfo(FragmentAlternatives.Result result) {
+    public AlternativeInfo(FragmentAlternatives.Result result, String layoutTargetDir) {
         this.result = result;
+        this.layoutTargetDir = layoutTargetDir;
     }
 
     public FragmentAlternatives.Result getResult() {
@@ -46,6 +48,10 @@ public class AlternativeInfo {
 
     public double getPrefRatio() {
         return getPrefSize().getWidth() / getPrefSize().getHeight();
+    }
+
+    public String getLayoutTargetDir() {
+        return layoutTargetDir;
     }
 }
 

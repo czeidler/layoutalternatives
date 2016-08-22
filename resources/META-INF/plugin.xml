@@ -30,7 +30,10 @@
 
   <actions>
     <!-- Add your actions here -->
-    <action id="AlternativeAction" class="nz.ac.auckland.alm.alternatives.AlternativeAction" text="Alternatives" description="test an action">
+    <action id="PortToLandAlternativeAction" class="nz.ac.auckland.alm.alternatives.PortToLandAlternativeAction" text="Port to Land" description="test an action">
+      <add-to-group group-id="AndroidToolsGroup" anchor="after" relative-to-action="Android.ShowThemeEditor"/>
+    </action>
+    <action id="LandToPortAlternativeAction" class="nz.ac.auckland.alm.alternatives.LandToPortAlternativeAction" text="Land to Port" description="test an action">
       <add-to-group group-id="AndroidToolsGroup" anchor="after" relative-to-action="Android.ShowThemeEditor"/>
     </action>
   </actions>

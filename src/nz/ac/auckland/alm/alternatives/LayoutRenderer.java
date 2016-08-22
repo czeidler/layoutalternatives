@@ -51,29 +51,29 @@ public class LayoutRenderer {
     }
 
     public DesignSurface getDesignSurface(DesignSurface reuse, final Fragment fragment, boolean renderImmediately,
-                                          boolean refreshResources) {
-        XmlFile copyXmlFile = createLandFile(fragment);
+                                          boolean refreshResources, String outLayoutDir, boolean useALMLayout) {
+        XmlFile copyXmlFile = createLandFile(fragment, outLayoutDir, useALMLayout);
         if (refreshResources)
             facet.refreshResources();
         return createView(reuse, copyXmlFile, renderImmediately);
     }
 
-    public XmlFile createLandFile(final Fragment fragment) {
+    public XmlFile createLandFile(final Fragment fragment, String outputDir, final boolean useALMLayout) {
         PsiDirectory resourceDir = xmlFile.getParent().getParentDirectory();
-        PsiDirectory landDir = resourceDir.findSubdirectory("layout-land");
-        if (landDir == null)
-            landDir = resourceDir.createSubdirectory("layout-land");
+        PsiDirectory layoutDir = resourceDir.findSubdirectory(outputDir);
+        if (layoutDir == null)
+            layoutDir = resourceDir.createSubdirectory(outputDir);
         String fileName = xmlFile.getName();
-        PsiFile copyLand = landDir.findFile(fileName);
-        if (copyLand == null)
-            copyLand = landDir.createFile(fileName);
+        PsiFile copyLayout = layoutDir.findFile(fileName);
+        if (copyLayout == null)
+            copyLayout = layoutDir.createFile(fileName);
 
-        facet.getConfigurationManager().getConfiguration(copyLand.getVirtualFile()).setTheme(
+        facet.getConfigurationManager().getConfiguration(copyLayout.getVirtualFile()).setTheme(
           facet.getConfigurationManager().getConfiguration(xmlFile.getVirtualFile()).getTheme()
         );
 
-        final XmlFile copyXmlFile = (XmlFile)copyLand;
-        WriteCommandAction<Void> action = new WriteCommandAction<Void>(project, copyLand) {
+        final XmlFile copyXmlFile = (XmlFile)copyLayout;
+        WriteCommandAction<Void> action = new WriteCommandAction<Void>(project, copyLayout) {
             @Override
             protected void run(@NotNull Result<Void> result) throws Throwable {
                 // fix prolog
@@ -82,8 +82,10 @@ public class LayoutRenderer {
                     copyDocument.getProlog().delete();
                 copyDocument.add(xmlFile.getDocument().getProlog().copy());
 
-                ALMLayoutWriter.write(xmlFile.getRootTag(), fragment, copyXmlFile, project, facet);
-                //PsiLayoutWriter.write(fragment, copyXmlFile, project);
+                if (useALMLayout)
+                    ALMLayoutWriter.write(xmlFile.getRootTag(), fragment, copyXmlFile, project, facet);
+                else
+                    PsiLayoutWriter.write(fragment, copyXmlFile, project);
             }
         };
         action.execute();
