@@ -85,8 +85,9 @@ public class AlternativeMain {
     }
   }
 
-  static private void print(final LayoutRenderer layoutRenderer, Fragment fragment, String outName) {
-    DesignSurface panel = layoutRenderer.getDesignSurface(null, fragment, true, true);
+  static private void print(final LayoutRenderer layoutRenderer, AlternativeInfo alternativeInfo, String outName, boolean useALMLayout) {
+    DesignSurface panel = layoutRenderer.getDesignSurface(null, alternativeInfo.getFragment(), true, true,
+                                                          alternativeInfo.getLayoutTargetDir(), useALMLayout);
     panel.setSize(1000, 600);
     panel.setVisible(true);
     panel.revalidate();
@@ -97,18 +98,19 @@ public class AlternativeMain {
   }
 
   static private void print(final LayoutRenderer layoutRenderer, List<AlternativeInfo> infoList) {
-    print(layoutRenderer, infoList.get(0).getFragment(), "test.png");
+    print(layoutRenderer, infoList.get(0), "test.png", true);
   }
 
   static private void loadPreview(AlternativeInfo alternativeInfo, JPanel previewPanel, LayoutRenderer layoutRenderer,
-                                  boolean refreshResources) {
+                                  boolean refreshResources, boolean useALMLayout) {
     DesignSurface surface = null;
     if (previewPanel.getComponents().length > 0) {
       surface = (DesignSurface)previewPanel.getComponent(0);
       previewPanel.remove(0);
     }
 
-    previewPanel.add(layoutRenderer.getDesignSurface(surface, alternativeInfo.getFragment(), false, refreshResources));
+    previewPanel.add(layoutRenderer.getDesignSurface(surface, alternativeInfo.getFragment(), false, refreshResources,
+                                                     alternativeInfo.getLayoutTargetDir(), useALMLayout));
     previewPanel.revalidate();
     previewPanel.repaint();
     Container parent = previewPanel.getParent();
@@ -124,6 +126,9 @@ public class AlternativeMain {
     label.setMaximumSize(new Dimension(label.getMaximumSize().width, label.getPreferredSize().height));
     label.setEditable(false);
     final JPanel previewPanel = new JPanel(new BorderLayout());
+
+    final JCheckBox outputAlmLayout = new JCheckBox("ALM output");
+    outputAlmLayout.setSelected(true);
 
     final JButton printImagesButton = new JButton("Print");
     printImagesButton.addActionListener(new ActionListener() {
@@ -146,10 +151,10 @@ public class AlternativeMain {
         int selected = alternativeController.getSelectedAlternative();
         if (selected < 0)
           return;
-        loadPreview(alternativeController.getAlternatives().get(selected), previewPanel, layoutRenderer, true);
+        loadPreview(alternativeController.getAlternatives().get(selected), previewPanel, layoutRenderer, true,
+                    outputAlmLayout.isSelected());
       }
     });
-
 
     // we keep the hard ref in the main panel
     AlternativeController.IListener alternativeViewListener = new AlternativeController.IListener() {
@@ -161,7 +166,7 @@ public class AlternativeMain {
       @Override
       public void onAlternativeSelected(int i) {
         AlternativeInfo alternativeInfo = alternativeController.getAlternatives().get(i);
-        loadPreview(alternativeInfo, previewPanel, layoutRenderer, false);
+        loadPreview(alternativeInfo, previewPanel, layoutRenderer, false, outputAlmLayout.isSelected());
         label.setText("Alternative: " + alternativeInfo.getFragment());
       }
     };
@@ -174,6 +179,7 @@ public class AlternativeMain {
     buttonBar.setLayout(new HorizontalLayout(10));
     buttonBar.add(printImagesButton);
     buttonBar.add(refreshButton);
+    buttonBar.add(outputAlmLayout);
     buttonBar.setMaximumSize(new Dimension(buttonBar.getMaximumSize().width, buttonBar.getPreferredSize().height));
 
     mainPanel.add(buttonBar);
